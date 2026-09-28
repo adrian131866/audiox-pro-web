@@ -27,7 +27,11 @@ export const LibraryView: React.FC<LibraryViewProps> = ({ onFilesSelected }) => 
 
  
   if (queue.length === 0) {
-    return <DropZone onFilesSelected={onFilesSelected} />;
+  return (
+   <div className="flex-1 min-h-[400px]">
+    <DropZone onFilesSelected={onFilesSelected} />
+    </div>
+     );
   }
 
   return (
