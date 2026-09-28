@@ -150,7 +150,7 @@ const handleLoginSuccess = (token: string) => {
       />
 
       {/* Área principal */}
-      <main className="flex-1 flex flex-col overflow-hidden border-r border-ax-border pb-20">
+      <main className="flex-1 flex flex-col overflow-y-auto border-r border-ax-border pb-24">
         <header className="px-8 py-6 border-b border-ax-border">
           <h2 className="text-2xl font-bold text-white">
             {activeSection === 'songs' && 'My Library'}
