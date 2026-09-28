@@ -79,7 +79,16 @@ const handleLoginSuccess = (token: string) => {
     }
   };
 
-  const renderMainContent = () => {
+const renderMainContent = () => {
+  if (['equalizer', 'dsp', 'visualizer'].includes(activeSection)) {
+    return (
+      <ToolsView
+        activeTool={activeSection as 'equalizer' | 'dsp' | 'visualizer'}
+      />
+    );
+  }
+
+  if (['songs', 'artists', 'albums', 'folders', 'favorites', 'recent', 'playlists'].includes(activeSection)) {
     if (usePlayerStore.getState().isVideoMode && !isVideoMinimized) {
       return (
         <div className="flex-1 flex flex-col">
@@ -90,39 +99,31 @@ const handleLoginSuccess = (token: string) => {
       );
     }
 
-    if (['songs', 'artists', 'albums', 'folders', 'favorites', 'recent', 'playlists'].includes(activeSection)) {
-      return (
-        <>
-          <div className="px-8 py-4 flex gap-2 border-b border-ax-border">
-            {['Songs', 'Artists', 'Albums', 'Folders'].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveSection(tab.toLowerCase())}
-                className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeSection === tab.toLowerCase()
-                    ? 'bg-ax-accent/20 text-ax-accent'
-                    : 'text-ax-muted hover:text-white hover:bg-ax-card'
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
-          <LibraryView onFilesSelected={handleFilesSelected} />
-        </>
-      );
-    }
+    return (
+      <>
+        <div className="px-8 py-4 flex gap-2 border-b border-ax-border">
+          {['Songs', 'Artists', 'Albums', 'Folders'].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveSection(tab.toLowerCase())}
+              className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${
+                activeSection === tab.toLowerCase()
+                  ? 'bg-ax-accent/20 text-ax-accent'
+                  : 'text-ax-muted hover:text-white hover:bg-ax-card'
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+        <LibraryView onFilesSelected={handleFilesSelected} />
+      </>
+    );
+  }
 
-    if (['equalizer', 'dsp', 'visualizer'].includes(activeSection)) {
-      return (
-        <ToolsView
-          activeTool={activeSection as 'equalizer' | 'dsp' | 'visualizer'}
-        />
-      );
-    }
+  return null;
+};
 
-    return null;
-  };
 
   if (!isAuthenticated) {
     return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
