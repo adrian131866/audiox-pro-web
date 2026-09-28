@@ -11,15 +11,14 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'default_secret';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'HNQXmRwPPbKXaKsdj8#';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'HNQXmRwPPbKXaKsdj8';
 
 console.log('🔑 Contraseña leída del .env:', ADMIN_PASSWORD);
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '../../dist')));
 
-const dbPath = path.join(__dirname, 'database.sqlite');
+const dbPath = path.join(process.cwd(), 'database.sqlite');
 console.log('💾 Ruta de la base de datos:', dbPath);
 
 const db = new Database(dbPath);
@@ -53,7 +52,7 @@ if (!adminExists) {
   db.prepare('INSERT INTO users (username, password) VALUES (?, ?)').run('admin', hashedPassword);
   console.log('✅ Usuario admin CREADO con la contraseña del .env');
 } else {
-  console.log('⚠️ El usuario admin YA EXISTÍA en la base de datos (no se sobrescribió).');
+  console.log('⚠️ El usuario admin YA EXISTÍA en la base de datos');
 }
 
 const authenticateToken = (req: any, res: any, next: any) => {
@@ -68,11 +67,9 @@ const authenticateToken = (req: any, res: any, next: any) => {
   });
 };
 
-
 app.post('/api/login', (req, res) => {
   const { password } = req.body;
-
-  console.log('🔍 Intento de login. Contraseña recibida del frontend:', password);
+  console.log('🔍 Intento de login. Contraseña recibida:', password);
 
   if (!password) {
     return res.status(400).json({ error: 'Contraseña requerida' });
@@ -81,12 +78,12 @@ app.post('/api/login', (req, res) => {
   const user = db.prepare('SELECT * FROM users WHERE username = ?').get('admin');
   
   if (!user) {
-    console.log('❌ Error crítico: No se encontró el usuario "admin" en la DB');
+    console.log('❌ Usuario admin no encontrado en la DB');
     return res.status(401).json({ error: 'Usuario no encontrado' });
   }
 
   const isMatch = bcrypt.compareSync(password, (user as any).password);
-  console.log('🔐 ¿La contraseña coincide según bcrypt?', isMatch);
+  console.log('🔐 ¿La contraseña coincide?', isMatch);
 
   if (!isMatch) {
     return res.status(401).json({ error: 'Contraseña incorrecta' });
@@ -98,7 +95,7 @@ app.post('/api/login', (req, res) => {
     { expiresIn: '7d' }
   );
 
-  console.log('✅ Login exitoso. Token generado.');
+  console.log('✅ Login exitoso');
   res.json({ token, message: 'Login exitoso' });
 });
 
@@ -126,10 +123,12 @@ app.delete('/api/profiles/:id', authenticateToken, (req: any, res) => {
   res.json({ success: true });
 });
 
+app.use(express.static(path.join(process.cwd(), '../dist')));
+
 app.use((req, res) => {
-  res.sendFile(path.join(__dirname, '../../dist/index.html'));
+  res.sendFile(path.join(process.cwd(), '../dist/index.html'));
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor AudioX Pro corriendo en http://localhost:${PORT}`);
+  console.log(`🚀 Servidor AudioX Pro corriendo en el puerto ${PORT}`);
 });
