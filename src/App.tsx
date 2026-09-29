@@ -105,6 +105,14 @@ function App() {
   };
 
   const renderMainContent = () => {
+    if (['equalizer', 'dsp', 'visualizer'].includes(activeSection)) {
+      return (
+        <ToolsView
+          activeTool={activeSection as 'equalizer' | 'dsp' | 'visualizer'}
+        />
+      );
+    }
+
     if (usePlayerStore.getState().isVideoMode && !isVideoMinimized) {
       return (
         <div className="flex-1 flex flex-col">
@@ -123,10 +131,11 @@ function App() {
               <button
                 key={tab}
                 onClick={() => setActiveSection(tab.toLowerCase())}
-                className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${activeSection === tab.toLowerCase()
+                className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  activeSection === tab.toLowerCase()
                     ? 'bg-ax-accent/20 text-ax-accent'
                     : 'text-ax-muted hover:text-white hover:bg-ax-card'
-                  }`}
+                }`}
               >
                 {tab}
               </button>
@@ -137,16 +146,9 @@ function App() {
       );
     }
 
-    if (['equalizer', 'dsp', 'visualizer'].includes(activeSection)) {
-      return (
-        <ToolsView
-          activeTool={activeSection as 'equalizer' | 'dsp' | 'visualizer'}
-        />
-      );
-    }
-
     return null;
   };
+
 
   if (!isAuthenticated) {
     return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
@@ -174,7 +176,7 @@ function App() {
       />
 
       {/* Área principal */}
-      <main className="flex-1 flex flex-col overflow-hidden border-r border-ax-border pb-20">
+      <main className="flex-1 flex flex-col overflow-y-auto border-r border-ax-border pb-24">
         <header className="px-8 py-6 border-b border-ax-border">
           <h2 className="text-2xl font-bold text-white">
             {activeSection === 'songs' && 'My Library'}
