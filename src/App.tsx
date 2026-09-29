@@ -27,33 +27,33 @@ function App() {
     }
   }, []);
 
- const verifyToken = async (token: string) => {
-  try {
+  const verifyToken = async (token: string) => {
+    try {
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
       const response = await fetch(`${API_URL}/api/verify`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-      signal: AbortSignal.timeout(3000)
-    });
+        headers: { 'Authorization': `Bearer ${token}` },
+        signal: AbortSignal.timeout(3000)
+      });
 
-    if (response.ok) {
-      const data = await response.json();
-      console.log('✅ Token válido, usuario autenticado:', data.user);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Token válido, usuario autenticado:', data.user);
+        setIsAuthenticated(true);
+      } else {
+        console.warn('⚠️ Token inválido, eliminando...');
+        localStorage.removeItem('audiox_token');
+      }
+    } catch (error) {
+      console.warn('️ Servidor no disponible, modo desarrollo activado');
+      console.warn('Error:', error);
       setIsAuthenticated(true);
-    } else {
-      console.warn('⚠️ Token inválido, eliminando...');
-      localStorage.removeItem('audiox_token');
     }
-  } catch (error) {
-    console.warn('️ Servidor no disponible, modo desarrollo activado');
-    console.warn('Error:', error);
+  };
+
+  const handleLoginSuccess = (token: string) => {
+    localStorage.setItem('audiox_token', token);
     setIsAuthenticated(true);
-  }
-};
-  
-const handleLoginSuccess = (token: string) => {
-  localStorage.setItem('audiox_token', token);
-  setIsAuthenticated(true);
-};
+  };
 
   const handleStartEngine = async () => {
     try {
@@ -65,18 +65,43 @@ const handleLoginSuccess = (token: string) => {
   };
 
   const handleFilesSelected = (files: File[]) => {
-    const newTracks: Track[] = files.map((file) => ({
-      id: crypto.randomUUID(),
-      file: file,
-      name: file.name,
-      url: URL.createObjectURL(file),
-      type: file.type.startsWith('video') ? 'video' : 'audio',
-    }));
+    const newTracks: Track[] = files
+      .filter((file) => {
+        const name = file.name.toLowerCase();
+        const isAudio = name.endsWith('.mp3') || name.endsWith('.wav') ||
+          name.endsWith('.flac') || name.endsWith('.aac') ||
+          name.endsWith('.ogg') || name.endsWith('.m4a') ||
+          name.endsWith('.opus');
+        const isVideo = name.endsWith('.mp4') || name.endsWith('.webm') ||
+          name.endsWith('.mov') || name.endsWith('.avi');
+        return isAudio || isVideo;
+      })
+      .map((file) => {
+        const name = file.name.toLowerCase();
+        const isVideo = name.endsWith('.mp4') || name.endsWith('.webm') ||
+          name.endsWith('.mov') || name.endsWith('.avi');
+
+        return {
+          id: crypto.randomUUID(),
+          file: file,
+          name: file.name,
+          url: URL.createObjectURL(file),
+          type: isVideo ? 'video' : 'audio',
+        };
+      });
+
+    if (newTracks.length === 0) {
+      alert('No se encontraron archivos de audio o video válidos.');
+      return;
+    }
 
     newTracks.forEach((track) => addToQueue(track));
-    if (newTracks.length > 0 && !usePlayerStore.getState().currentTrack) {
+
+    if (!usePlayerStore.getState().currentTrack) {
       setCurrentTrack(newTracks[0]);
     }
+
+    console.log(`📁 ${newTracks.length} archivos cargados exitosamente`);
   };
 
   const renderMainContent = () => {
@@ -98,11 +123,10 @@ const handleLoginSuccess = (token: string) => {
               <button
                 key={tab}
                 onClick={() => setActiveSection(tab.toLowerCase())}
-                className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeSection === tab.toLowerCase()
+                className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${activeSection === tab.toLowerCase()
                     ? 'bg-ax-accent/20 text-ax-accent'
                     : 'text-ax-muted hover:text-white hover:bg-ax-card'
-                }`}
+                  }`}
               >
                 {tab}
               </button>
@@ -144,9 +168,9 @@ const handleLoginSuccess = (token: string) => {
   return (
     <div className="flex h-screen bg-ax-bg overflow-hidden">
       {/* Sidebar izquierdo */}
-      <Sidebar 
-        activeSection={activeSection} 
-        onSectionChange={setActiveSection} 
+      <Sidebar
+        activeSection={activeSection}
+        onSectionChange={setActiveSection}
       />
 
       {/* Área principal */}
