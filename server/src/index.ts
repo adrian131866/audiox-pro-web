@@ -11,14 +11,19 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'default_secret';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'HNQXmRwPPbKXaKsdj8';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'audiox2024';
 
-console.log('🔑 Contraseña leída del .env:', ADMIN_PASSWORD);
+console.log(' Contraseña leída del .env:', ADMIN_PASSWORD);
 
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://audiox-pro-web.vercel.app'],
+  origin: [
+    'http://localhost:5173',         
+    'https://audiox-pro-web.vercel.app', 
+    /https:\/\/.*\.vercel\.app$/     
+  ],
   credentials: true
 }));
+
 app.use(express.json());
 
 const dbPath = path.join(process.cwd(), 'database.sqlite');
@@ -55,7 +60,7 @@ if (!adminExists) {
   db.prepare('INSERT INTO users (username, password) VALUES (?, ?)').run('admin', hashedPassword);
   console.log('✅ Usuario admin CREADO con la contraseña del .env');
 } else {
-  console.log('⚠️ El usuario admin YA EXISTÍA en la base de datos');
+  console.log('️ El usuario admin YA EXISTÍA en la base de datos');
 }
 
 const authenticateToken = (req: any, res: any, next: any) => {
@@ -70,6 +75,10 @@ const authenticateToken = (req: any, res: any, next: any) => {
   });
 };
 
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 app.post('/api/login', (req, res) => {
   const { password } = req.body;
   console.log('🔍 Intento de login. Contraseña recibida:', password);
@@ -79,7 +88,7 @@ app.post('/api/login', (req, res) => {
   }
 
   const user = db.prepare('SELECT * FROM users WHERE username = ?').get('admin');
-
+  
   if (!user) {
     console.log('❌ Usuario admin no encontrado en la DB');
     return res.status(401).json({ error: 'Usuario no encontrado' });
