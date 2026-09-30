@@ -15,7 +15,10 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'HNQXmRwPPbKXaKsdj8';
 
 console.log('🔑 Contraseña leída del .env:', ADMIN_PASSWORD);
 
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:5173', 'https://audiox-pro-web.vercel.app'],
+  credentials: true
+}));
 app.use(express.json());
 
 const dbPath = path.join(process.cwd(), 'database.sqlite');
@@ -121,12 +124,6 @@ app.get('/api/profiles', authenticateToken, (req: any, res) => {
 app.delete('/api/profiles/:id', authenticateToken, (req: any, res) => {
   db.prepare('DELETE FROM audio_profiles WHERE id = ? AND user_id = ?').run(req.params.id, req.user.id);
   res.json({ success: true });
-});
-
-app.use(express.static(path.join(process.cwd(), '../dist')));
-
-app.use((req, res) => {
-  res.sendFile(path.join(process.cwd(), '../dist/index.html'));
 });
 
 app.listen(PORT, () => {

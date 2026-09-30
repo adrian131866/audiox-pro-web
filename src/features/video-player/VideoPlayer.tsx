@@ -95,7 +95,6 @@ export const VideoPlayer = () => {
       <video
         ref={(el) => {
           if (el && el !== videoEngine.getVideoElement()) {
-            // Reemplazar el elemento interno con el del DOM para mejor control
           }
         }}
         className="w-full h-full object-contain"
