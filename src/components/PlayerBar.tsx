@@ -1,6 +1,6 @@
 import {
   Play, Pause, SkipBack, SkipForward,
-  Shuffle, Repeat, Volume2, Music
+  Shuffle, Repeat, Volume2
 } from 'lucide-react';
 import { usePlayerStore } from '../store/usePlayerStore';
 import { audioEngine } from '../core/audio/AudioEngine';
@@ -31,80 +31,45 @@ export const PlayerBar = () => {
   };
 
   return (
-    <footer className="h-20 bg-ax-sidebar border-t border-ax-border flex items-center px-6 gap-6">
-      {/* Info de la pista (izquierda) */}
-      <div className="w-64 flex items-center gap-3">
-        {currentTrack ? (
-          <>
-            <div className="w-12 h-12 bg-ax-card rounded-lg flex items-center justify-center">
-              <Music className="w-6 h-6 text-ax-muted" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-white truncate">{currentTrack.name}</p>
-              <p className="text-xs text-ax-muted">
-                {currentTrack.type === 'video' ? 'Video' : 'Audio'}
-              </p>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="w-12 h-12 bg-ax-card rounded-lg flex items-center justify-center">
-              <Music className="w-6 h-6 text-ax-muted" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-ax-muted">No track loaded</p>
-              <p className="text-xs text-ax-muted">Select a song to play</p>
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Controles centrales */}
-      <div className="flex-1 flex flex-col items-center gap-2">
-        <div className="flex items-center gap-4">
-          <button className="text-ax-muted hover:text-white transition-colors">
+    <footer className="h-20 sm:h-20 bg-ax-sidebar border-t border-ax-border flex items-center px-3 sm:px-6 gap-3 sm:gap-6">
+      <div className="flex-1 flex flex-col items-center gap-1 sm:gap-2">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <button className="text-ax-muted hover:text-white transition-colors hidden sm:block">
             <Shuffle className="w-4 h-4" />
           </button>
-
-          {/* Botón Anterior - AHORA FUNCIONAL */}
           <button
             onClick={handlePrevious}
+            className="text-ax-muted hover:text-white transition-colors"
             disabled={!currentTrack}
-            className={`transition-colors ${currentTrack ? 'text-ax-muted hover:text-white' : 'text-slate-700 cursor-not-allowed'
-              }`}
+            aria-label="Previous track"
           >
-            <SkipBack className="w-5 h-5" />
+            <SkipBack className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
-
-          {/* Botón Play/Pause */}
           <button
             onClick={handlePlayPause}
             disabled={!currentTrack}
-            className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${currentTrack
-                ? 'bg-ax-accent hover:bg-ax-accentHover text-white'
-                : 'bg-ax-card text-ax-muted cursor-not-allowed'
+            className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-colors ${currentTrack
+              ? 'bg-ax-accent hover:bg-ax-accentHover text-white'
+              : 'bg-ax-card text-ax-muted cursor-not-allowed'
               }`}
           >
             {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
           </button>
-
-          {/* Botón Siguiente - AHORA FUNCIONAL */}
           <button
             onClick={handleNext}
+            className="text-ax-muted hover:text-white transition-colors"
             disabled={!currentTrack}
-            className={`transition-colors ${currentTrack ? 'text-ax-muted hover:text-white' : 'text-slate-700 cursor-not-allowed'
-              }`}
+            aria-label="Next track"
           >
-            <SkipForward className="w-5 h-5" />
+            <SkipForward className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
-
-          <button className="text-ax-muted hover:text-white transition-colors">
+          <button className="text-ax-muted hover:text-white transition-colors hidden sm:block">
             <Repeat className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Barra de progreso (informativa por ahora) */}
-        <div className="w-full max-w-xl flex items-center gap-3 text-xs text-ax-muted">
+        {/* Barra de progreso - más compacta en móvil */}
+        <div className="w-full max-w-xl flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-ax-muted">
           <span>0:00</span>
           <input
             type="range"
@@ -119,8 +84,8 @@ export const PlayerBar = () => {
       </div>
 
       {/* Volumen (derecha) */}
-      <div className="w-48 flex items-center gap-3">
-        <Volume2 className="w-4 h-4 text-ax-muted" />
+      <div className="w-32 sm:w-48 flex items-center gap-2 sm:gap-3">
+        <Volume2 className="w-4 h-4 text-ax-muted hidden sm:block" />
         <input
           type="range"
           min="0"

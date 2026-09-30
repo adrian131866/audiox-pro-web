@@ -131,11 +131,10 @@ function App() {
               <button
                 key={tab}
                 onClick={() => setActiveSection(tab.toLowerCase())}
-                className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeSection === tab.toLowerCase()
+                className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${activeSection === tab.toLowerCase()
                     ? 'bg-ax-accent/20 text-ax-accent'
                     : 'text-ax-muted hover:text-white hover:bg-ax-card'
-                }`}
+                  }`}
               >
                 {tab}
               </button>
@@ -176,7 +175,7 @@ function App() {
       />
 
       {/* Área principal */}
-      <main className="flex-1 flex flex-col overflow-y-auto border-r border-ax-border pb-24">
+      <main className="flex-1 flex flex-col overflow-y-auto border-r border-ax-border pb-24 sm:pb-20 pt-16 lg:pt-0">
         <header className="px-8 py-6 border-b border-ax-border">
           <h2 className="text-2xl font-bold text-white">
             {activeSection === 'songs' && 'My Library'}
