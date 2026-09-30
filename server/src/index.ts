@@ -76,7 +76,7 @@ app.post('/api/login', (req, res) => {
   }
 
   const user = db.prepare('SELECT * FROM users WHERE username = ?').get('admin');
-  
+
   if (!user) {
     console.log('❌ Usuario admin no encontrado en la DB');
     return res.status(401).json({ error: 'Usuario no encontrado' });
