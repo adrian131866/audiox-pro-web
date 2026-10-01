@@ -12,7 +12,6 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'default_secret';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'HNQXmRwPPbKXaKsdj8';
-
 console.log(' Contraseña leída del .env:', ADMIN_PASSWORD);
 
 app.use(cors({
