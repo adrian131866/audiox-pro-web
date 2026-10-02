@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { audioEngine } from '../../core/audio/AudioEngine';
 import { SubHarmonicRestorer } from '../../core/audio/SubHarmonicRestorer';
 import { Switch } from '../../components/Switch';
@@ -12,78 +12,82 @@ export const SubHarmonicPanel = () => {
   const [mix, setMix] = useState(50);
   const [level, setLevel] = useState(0);
 
-  const [restorer, setRestorer] = useState<SubHarmonicRestorer | null>(null);
+  const restorerRef = useRef<SubHarmonicRestorer | null>(null);
+  const animationRef = useRef<number | null>(null);
 
   useEffect(() => {
     const context = audioEngine.getContext();
     if (!context) return;
 
     const sub = new SubHarmonicRestorer(context);
-    setRestorer(sub);
+    restorerRef.current = sub;
 
-    console.log(' SubHarmonicRestorer inicializado');
-
-    const interval = setInterval(() => {
-      if (isEnabled) {
-        setLevel(Math.random() * 100);
+    const updateLevel = () => {
+      if (sub && sub.getEnabled()) {
+        const currentLevel = sub.getLevel();
+        setLevel(currentLevel);
       } else {
         setLevel(0);
       }
-    }, 100);
+      animationRef.current = requestAnimationFrame(updateLevel);
+    };
+
+    updateLevel();
 
     return () => {
-      clearInterval(interval);
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
     };
   }, []);
 
   const handleToggle = (enabled: boolean) => {
     setIsEnabled(enabled);
-    restorer?.setEnabled(enabled);
+    restorerRef.current?.setEnabled(enabled);
   };
 
   const handleRestoration = (val: number) => {
     setRestoration(val);
-    restorer?.setRestoration(val);
+    restorerRef.current?.setRestoration(val);
   };
 
   const handleSubRange = (val: number) => {
     setSubRange(val);
-    restorer?.setSubRange(val);
+    restorerRef.current?.setSubRange(val);
   };
 
   const handleSweep = (val: number) => {
     setSweep(val);
-    restorer?.setSweep(val);
+    restorerRef.current?.setSweep(val);
   };
 
   const handleWide = (val: number) => {
     setWide(val);
-    restorer?.setWide(val);
+    restorerRef.current?.setWide(val);
   };
 
   const handleMix = (val: number) => {
     setMix(val);
-    restorer?.setMix(val);
+    restorerRef.current?.setMix(val);
   };
 
   const renderLevelMeter = () => {
     const segments = 12;
     const activeSegments = Math.floor((level / 100) * segments);
-    
+
     return (
       <div className="flex gap-1 h-8 items-end">
         {Array.from({ length: segments }).map((_, i) => (
           <div
             key={i}
-            className={`flex-1 rounded-sm transition-all duration-75 ${
-              i < activeSegments
+            className={`flex-1 rounded-sm transition-all duration-75 ${i < activeSegments
                 ? i < 6
                   ? 'bg-green-500'
                   : i < 9
-                  ? 'bg-yellow-500'
-                  : 'bg-red-500'
+                    ? 'bg-yellow-500'
+                    : 'bg-red-500'
                 : 'bg-slate-700'
-            }`}
+              }`}
             style={{ height: `${20 + (i / segments) * 80}%` }}
           />
         ))}
@@ -96,7 +100,7 @@ export const SubHarmonicPanel = () => {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h3 className="text-lg font-bold text-white flex items-center gap-2">
-            <span className="text-ax-accent">️</span>
+            <span className="text-ax-accent">🔊</span>
             Sub-Harmonic Restorer
           </h3>
           <p className="text-xs text-ax-muted mt-1">
@@ -106,7 +110,6 @@ export const SubHarmonicPanel = () => {
         <Switch enabled={isEnabled} onChange={handleToggle} />
       </div>
 
-      {/* Medidor de nivel */}
       <div className="mb-6">
         <div className="flex justify-between items-center mb-2">
           <span className="text-xs font-medium text-ax-muted">Output Level</span>
@@ -115,10 +118,8 @@ export const SubHarmonicPanel = () => {
         {renderLevelMeter()}
       </div>
 
-      {/* Controles */}
       <div className={`space-y-4 transition-opacity ${isEnabled ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
-        
-        {/* Restoration */}
+
         <div className="bg-slate-800/50 p-3 rounded-lg">
           <div className="flex justify-between items-center mb-2">
             <label className="text-xs font-medium text-white">Restoration</label>
@@ -141,7 +142,6 @@ export const SubHarmonicPanel = () => {
           </div>
         </div>
 
-        {/* Sub Range */}
         <div className="bg-slate-800/50 p-3 rounded-lg">
           <div className="flex justify-between items-center mb-2">
             <label className="text-xs font-medium text-white">Sub Range</label>
@@ -162,7 +162,6 @@ export const SubHarmonicPanel = () => {
           </div>
         </div>
 
-        {/* Sweep */}
         <div className="bg-slate-800/50 p-3 rounded-lg">
           <div className="flex justify-between items-center mb-2">
             <label className="text-xs font-medium text-white">Sweep</label>
@@ -183,7 +182,6 @@ export const SubHarmonicPanel = () => {
           </div>
         </div>
 
-        {/* Wide */}
         <div className="bg-slate-800/50 p-3 rounded-lg">
           <div className="flex justify-between items-center mb-2">
             <label className="text-xs font-medium text-white">Wide (Stereo)</label>
@@ -204,7 +202,6 @@ export const SubHarmonicPanel = () => {
           </div>
         </div>
 
-        {/* Mix */}
         <div className="bg-slate-800/50 p-3 rounded-lg">
           <div className="flex justify-between items-center mb-2">
             <label className="text-xs font-medium text-white">Mix</label>

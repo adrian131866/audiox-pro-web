@@ -11,6 +11,7 @@ export const IntelligentLimiterPanel = () => {
   
   const limiterRef = useRef<IntelligentLimiter | null>(null);
   const animationRef = useRef<number | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
 
   useEffect(() => {
     const context = audioEngine.getContext();
@@ -18,16 +19,30 @@ export const IntelligentLimiterPanel = () => {
 
     const limiter = new IntelligentLimiter(context);
     limiterRef.current = limiter;
+    analyserRef.current = limiter.getAnalyser();
 
     const updateGR = () => {
-      if (limiter && limiter.getEnabled()) {
-        const reduction = Math.abs(limiter.getGainReduction());
-        setGrLevel(Math.min(60, reduction));
+      if (limiter && limiter.getEnabled() && analyserRef.current) {
+        const data = new Uint8Array(analyserRef.current.frequencyBinCount);
+        analyserRef.current.getByteFrequencyData(data);
+        
+        const sum = data.reduce((a, b) => a + b, 0);
+        const average = sum / data.length;
+        const thresholdLinear = Math.pow(10, threshold / 20);
+        const signalLevel = average / 255;
+        
+        if (signalLevel > thresholdLinear && signalLevel > 0.1) {
+          const gr = Math.min(60, (signalLevel - thresholdLinear) * 100);
+          setGrLevel(gr);
+        } else {
+          setGrLevel(0);
+        }
       } else {
         setGrLevel(0);
       }
       animationRef.current = requestAnimationFrame(updateGR);
     };
+    
     updateGR();
 
     return () => {
@@ -35,7 +50,7 @@ export const IntelligentLimiterPanel = () => {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, []);
+  }, [threshold]);
 
   const handleToggle = (enabled: boolean) => {
     setIsEnabled(enabled);
@@ -84,8 +99,8 @@ export const IntelligentLimiterPanel = () => {
   };
 
   const modeLabels: Record<LimiterMode, { label: string; desc: string; icon: string }> = {
-    'standard': { label: 'Standard', desc: 'Limitador clásico', icon: '️' },
-    'ai-sens': { label: 'AI Sens.', desc: 'Sensibilidad automática', icon: '' },
+    'standard': { label: 'Standard', desc: 'Limitador clásico', icon: '' },
+    'ai-sens': { label: 'AI Sens.', desc: 'Sensibilidad automática', icon: '🤖' },
     'safe-bass': { label: 'Safe Bass', desc: 'Protección de graves', icon: '🛡️' }
   };
 
@@ -94,7 +109,7 @@ export const IntelligentLimiterPanel = () => {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h3 className="text-lg font-bold text-white flex items-center gap-2">
-            <span className="text-ax-accent"></span>
+            <span className="text-ax-accent">🔒</span>
             Intelligent Limiter
           </h3>
           <p className="text-xs text-ax-muted mt-1">
@@ -104,7 +119,6 @@ export const IntelligentLimiterPanel = () => {
         <Switch enabled={isEnabled} onChange={handleToggle} />
       </div>
 
-      {/* Medidor de Gain Reduction */}
       <div className="mb-6 bg-slate-800/50 p-4 rounded-lg">
         <div className="flex justify-between items-center mb-2">
           <span className="text-xs font-medium text-ax-muted">Limiter GR</span>
@@ -119,7 +133,6 @@ export const IntelligentLimiterPanel = () => {
         </div>
       </div>
 
-      {/* Selector de modo */}
       <div className={`space-y-4 transition-opacity ${isEnabled ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
         <div>
           <label className="text-xs font-medium text-white block mb-2">Modo de Limitación</label>
@@ -142,7 +155,6 @@ export const IntelligentLimiterPanel = () => {
           </div>
         </div>
 
-        {/* Threshold */}
         <div className="bg-slate-800/50 p-3 rounded-lg">
           <div className="flex justify-between items-center mb-2">
             <label className="text-xs font-medium text-white">Threshold</label>

@@ -17,6 +17,7 @@ export class SubHarmonicRestorer {
     private dryGain: GainNode;
     private wetGain: GainNode;
     private bypassGain: GainNode;
+    private analyser: AnalyserNode;
 
     private params = {
         restoration: 8,
@@ -79,6 +80,10 @@ export class SubHarmonicRestorer {
 
         this.inputNode.connect(this.bypassGain);
         this.bypassGain.connect(this.outputNode);
+        this.analyser = context.createAnalyser();
+        this.analyser.fftSize = 256;
+        this.analyser.smoothingTimeConstant = 0.8;
+        this.outputNode.connect(this.analyser);
     }
 
     public setEnabled(enabled: boolean): void {
@@ -127,6 +132,18 @@ export class SubHarmonicRestorer {
         if (params.sweep !== undefined) this.setSweep(params.sweep);
         if (params.wide !== undefined) this.setWide(params.wide);
     }
+    
+    public getAnalyser(): AnalyserNode {
+        return this.analyser;
+    }
+
+    public getLevel(): number {
+        if (!this.analyser) return 0;
+        const data = new Uint8Array(this.analyser.frequencyBinCount);
+        this.analyser.getByteFrequencyData(data);
+        const sum = data.reduce((a, b) => a + b, 0);
+        return (sum / data.length / 255) * 100;
+    }
 
     private dbToGain(db: number): number {
         return Math.pow(10, db / 20);
@@ -134,8 +151,6 @@ export class SubHarmonicRestorer {
 
     private applyWide(percent: number): void {
         const factor = percent / 100;
-        // Left = Mid + Side * factor
-        // Right = Mid - Side * factor
         const leftGain = 0.5 + factor * 0.5;
         const rightGain = 0.5 + factor * 0.5;
         this.wideGainL.gain.setTargetAtTime(leftGain, this.context.currentTime, 0.1);
