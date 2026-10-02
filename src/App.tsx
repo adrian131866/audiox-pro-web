@@ -30,26 +30,27 @@ function App() {
   const verifyToken = async (token: string) => {
     try {
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      console.log(' API_URL:', API_URL); 
+      
       const response = await fetch(`${API_URL}/api/verify`, {
         headers: { 'Authorization': `Bearer ${token}` },
-        signal: AbortSignal.timeout(3000)
+        signal: AbortSignal.timeout(5000)
       });
 
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ Token válido, usuario autenticado:', data.user);
+        console.log('✅ Token válido:', data.user);
         setIsAuthenticated(true);
       } else {
-        console.warn('⚠️ Token inválido, eliminando...');
+        console.warn('⚠️ Token inválido');
         localStorage.removeItem('audiox_token');
       }
     } catch (error) {
-      console.warn('️ Servidor no disponible, modo desarrollo activado');
+      console.warn('⚠️ Servidor no disponible, modo desarrollo');
       console.warn('Error:', error);
       setIsAuthenticated(true);
     }
   };
-
   const handleLoginSuccess = (token: string) => {
     localStorage.setItem('audiox_token', token);
     setIsAuthenticated(true);
@@ -132,8 +133,8 @@ function App() {
                 key={tab}
                 onClick={() => setActiveSection(tab.toLowerCase())}
                 className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${activeSection === tab.toLowerCase()
-                    ? 'bg-ax-accent/20 text-ax-accent'
-                    : 'text-ax-muted hover:text-white hover:bg-ax-card'
+                  ? 'bg-ax-accent/20 text-ax-accent'
+                  : 'text-ax-muted hover:text-white hover:bg-ax-card'
                   }`}
               >
                 {tab}
