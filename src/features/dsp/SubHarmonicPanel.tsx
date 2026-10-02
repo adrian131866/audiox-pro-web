@@ -81,12 +81,12 @@ export const SubHarmonicPanel = () => {
           <div
             key={i}
             className={`flex-1 rounded-sm transition-all duration-75 ${i < activeSegments
-                ? i < 6
-                  ? 'bg-green-500'
-                  : i < 9
-                    ? 'bg-yellow-500'
-                    : 'bg-red-500'
-                : 'bg-slate-700'
+              ? i < 6
+                ? 'bg-green-500'
+                : i < 9
+                  ? 'bg-yellow-500'
+                  : 'bg-red-500'
+              : 'bg-slate-700'
               }`}
             style={{ height: `${20 + (i / segments) * 80}%` }}
           />

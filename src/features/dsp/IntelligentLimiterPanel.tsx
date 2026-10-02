@@ -8,7 +8,7 @@ export const IntelligentLimiterPanel = () => {
   const [mode, setMode] = useState<LimiterMode>('standard');
   const [threshold, setThreshold] = useState(-6);
   const [grLevel, setGrLevel] = useState(0);
-  
+
   const limiterRef = useRef<IntelligentLimiter | null>(null);
   const animationRef = useRef<number | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -25,12 +25,12 @@ export const IntelligentLimiterPanel = () => {
       if (limiter && limiter.getEnabled() && analyserRef.current) {
         const data = new Uint8Array(analyserRef.current.frequencyBinCount);
         analyserRef.current.getByteFrequencyData(data);
-        
+
         const sum = data.reduce((a, b) => a + b, 0);
         const average = sum / data.length;
         const thresholdLinear = Math.pow(10, threshold / 20);
         const signalLevel = average / 255;
-        
+
         if (signalLevel > thresholdLinear && signalLevel > 0.1) {
           const gr = Math.min(60, (signalLevel - thresholdLinear) * 100);
           setGrLevel(gr);
@@ -42,7 +42,7 @@ export const IntelligentLimiterPanel = () => {
       }
       animationRef.current = requestAnimationFrame(updateGR);
     };
-    
+
     updateGR();
 
     return () => {
@@ -60,7 +60,7 @@ export const IntelligentLimiterPanel = () => {
   const handleModeChange = (newMode: LimiterMode) => {
     setMode(newMode);
     limiterRef.current?.setMode(newMode);
-    
+
     const thresholds: Record<LimiterMode, number> = {
       'standard': -6,
       'ai-sens': -12,
@@ -78,7 +78,7 @@ export const IntelligentLimiterPanel = () => {
   const renderGRMeter = () => {
     const segments = 20;
     const activeSegments = Math.floor((grLevel / 60) * segments);
-    
+
     return (
       <div className="flex items-end gap-1 h-24">
         {Array.from({ length: segments }).map((_, i) => {
@@ -87,9 +87,8 @@ export const IntelligentLimiterPanel = () => {
           return (
             <div
               key={i}
-              className={`flex-1 rounded-sm transition-all duration-75 ${
-                isActive ? color : 'bg-slate-700'
-              }`}
+              className={`flex-1 rounded-sm transition-all duration-75 ${isActive ? color : 'bg-slate-700'
+                }`}
               style={{ height: `${10 + (i / segments) * 90}%` }}
             />
           );
@@ -141,11 +140,10 @@ export const IntelligentLimiterPanel = () => {
               <button
                 key={m}
                 onClick={() => handleModeChange(m)}
-                className={`p-3 rounded-lg border transition-all ${
-                  mode === m
+                className={`p-3 rounded-lg border transition-all ${mode === m
                     ? 'bg-ax-accent/20 border-ax-accent text-white'
                     : 'bg-slate-800/50 border-slate-700 text-ax-muted hover:border-slate-600'
-                }`}
+                  }`}
               >
                 <div className="text-xl mb-1">{modeLabels[m].icon}</div>
                 <div className="text-xs font-bold">{modeLabels[m].label}</div>
