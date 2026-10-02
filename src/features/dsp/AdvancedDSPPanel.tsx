@@ -4,21 +4,19 @@ import { Equalizer } from '../../core/audio/Equalizer';
 import { BassRestorer } from '../../core/audio/BassRestorer';
 import { CrossoverModule, CompressorModule } from '../../core/audio/DSPModules';
 import { Switch } from '../../components/Switch';
+import { SubHarmonicPanel } from './SubHarmonicPanel';
 
 export const AdvancedDSPPanel = () => {
-  // Estados de activación
   const [bassEnabled, setBassEnabled] = useState(false);
   const [crossoverEnabled, setCrossoverEnabled] = useState(false);
   const [compressorEnabled, setCompressorEnabled] = useState(false);
 
-  // Estados de parámetros
   const [bassIntensity, setBassIntensity] = useState(0);
   const [crossoverLow, setCrossoverLow] = useState(20000);
   const [crossoverHigh, setCrossoverHigh] = useState(20);
   const [compThreshold, setCompThreshold] = useState(-24);
   const [compRatio, setCompRatio] = useState(12);
 
-  // Referencias a los módulos
   const [modules, setModules] = useState<{
     eq: Equalizer | null;
     bass: BassRestorer | null;
@@ -30,7 +28,6 @@ export const AdvancedDSPPanel = () => {
     const context = audioEngine.getContext();
     if (!context || !audioEngine.inputNode || !audioEngine.outputNode) return;
 
-    // Inicializar módulos
     const eq = new Equalizer(context);
     const bass = new BassRestorer(context);
     const crossover = new CrossoverModule(context);
@@ -42,7 +39,6 @@ export const AdvancedDSPPanel = () => {
 
     setModules({ eq, bass, crossover, compressor });
 
-    // Encadenar módulos en serie
     audioEngine.inputNode.connect(eq.inputNode);
     eq.outputNode.connect(bass.inputNode);
     bass.outputNode.connect(crossover.inputNode);
@@ -52,7 +48,6 @@ export const AdvancedDSPPanel = () => {
     console.log(' DSP Chain: EQ -> Bass -> Crossover -> Compressor');
   }, []);
 
-  // Handlers Bass
   const handleBassToggle = (enabled: boolean) => {
     setBassEnabled(enabled);
     modules.bass?.setEnabled(enabled);
@@ -63,7 +58,6 @@ export const AdvancedDSPPanel = () => {
     modules.bass?.setIntensity(val);
   };
 
-  // Handlers Crossover
   const handleCrossoverToggle = (enabled: boolean) => {
     setCrossoverEnabled(enabled);
     modules.crossover?.setEnabled(enabled);
@@ -72,7 +66,6 @@ export const AdvancedDSPPanel = () => {
   const handleCrossoverLow = (val: number) => { setCrossoverLow(val); modules.crossover?.setLowPassFreq(val); };
   const handleCrossoverHigh = (val: number) => { setCrossoverHigh(val); modules.crossover?.setHighPassFreq(val); };
 
-  // Handlers Compressor
   const handleCompressorToggle = (enabled: boolean) => {
     setCompressorEnabled(enabled);
     modules.compressor?.setEnabled(enabled);
@@ -83,10 +76,11 @@ export const AdvancedDSPPanel = () => {
 
   return (
     <div className="space-y-6">
+      <SubHarmonicPanel />
       {/* EQUALIZER (Siempre activo, sin switch) */}
       <div className="bg-slate-900/50 p-4 rounded-lg border border-ax-border">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-sm font-bold text-white">Ecualizador Paramétrico</h3>
+          <h3 className="text-sm font-bold text-white">Ecualizador </h3>
           <span className="text-xs text-green-400 font-medium">SIEMPRE ACTIVO</span>
         </div>
         {modules.eq && (
