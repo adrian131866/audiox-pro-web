@@ -5,6 +5,7 @@ import { BassRestorer } from '../../core/audio/BassRestorer';
 import { CrossoverModule, CompressorModule } from '../../core/audio/DSPModules';
 import { Switch } from '../../components/Switch';
 import { SubHarmonicPanel } from './SubHarmonicPanel';
+import { IntelligentLimiterPanel } from './IntelligentLimiterPanel';
 
 export const AdvancedDSPPanel = () => {
   const [bassEnabled, setBassEnabled] = useState(false);
@@ -150,6 +151,8 @@ export const AdvancedDSPPanel = () => {
           </div>
         </div>
       </div>
+
+      <IntelligentLimiterPanel />
 
       {/* COMPRESOR */}
       <div className="bg-slate-900/50 p-4 rounded-lg border border-ax-border">
