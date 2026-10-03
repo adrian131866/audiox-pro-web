@@ -42,8 +42,7 @@ export const ToolsView: React.FC<ToolsViewProps> = ({ activeTool }) => {
           <div className="bg-ax-panel p-6 rounded-xl border border-ax-border">
             <h3 className="text-lg font-bold text-white mb-4">Visualizer Modes</h3>
             <p className="text-sm text-ax-muted">
-              El analizador de espectro está activo arriba. En futuras fases agregaremos modos:
-              Waveform, VU Meter, Peak Meter y Oscilloscope.
+              El analizador de espectro está activo arriba.
             </p>
           </div>
         )}

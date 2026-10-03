@@ -1,4 +1,4 @@
-import { PRESETS, type AudioPreset } from '../core/audio/presets';
+import { PRESETS, type AudioPreset } from '../../core/audio/presets';
 import { X } from 'lucide-react';
 
 interface PresetsModalProps {

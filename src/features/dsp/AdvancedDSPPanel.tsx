@@ -4,9 +4,9 @@ import { Equalizer } from '../../core/audio/Equalizer';
 import { SubHarmonicRestorer } from '../../core/audio/SubHarmonicRestorer';
 import { CrossoverModule, CompressorModule } from '../../core/audio/DSPModules';
 import { type AudioPreset } from '../../core/audio/presets';
-import { EpicenterPanel } from '../../features/dsp/EpicenterPanel';
-import { PresetsModal } from '../../components/PresetsModal';
-import { AutoAdjustPanel } from '../../features/dsp/AutoAdjustPanel';
+import { EpicenterPanel } from '../../components/dsp/EpicenterPanel';
+import { PresetsModal } from '../../components/dsp/PresetsModal';
+import { AutoAdjustPanel } from '../../components/dsp/AutoAdjustPanel';
 import { Switch } from '../../components/Switch';
 import { Library } from 'lucide-react';
 

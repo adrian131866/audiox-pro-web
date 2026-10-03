@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { SubHarmonicRestorer, type SubHarmonicState } from '../../core/audio/SubHarmonicRestorer';
-import { Switch } from '../../components/Switch';
+import { Switch } from '../Switch';
 
 interface EpicenterPanelProps {
   epicenter: SubHarmonicRestorer | null;
