@@ -7,9 +7,13 @@ import { audioEngine } from '../core/audio/AudioEngine';
 
 export const PlayerBar = () => {
   const {
-    currentTrack, isPlaying, volume,
-    togglePlay, setVolume,
-    nextTrack, previousTrack
+    currentTrack,
+    isPlaying,
+    volume,
+    togglePlay,
+    setVolume,
+    nextTrack,
+    previousTrack,
   } = usePlayerStore();
 
   const handleVolumeChange = (newVolume: number) => {
