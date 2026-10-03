@@ -4,13 +4,13 @@ import { SpectrumAnalyzer } from './visualizers/SpectrumAnalyzer';
 
 interface ToolsViewProps {
   activeTool: 'equalizer' | 'dsp' | 'visualizer';
+  onSectionChange?: (section: string) => void;
 }
 
-export const ToolsView: React.FC<ToolsViewProps> = ({ activeTool }) => {
+export const ToolsView: React.FC<ToolsViewProps> = ({ activeTool, onSectionChange }) => {
   return (
     <div className="flex-1 overflow-y-auto px-8 py-6">
       <div className="max-w-4xl mx-auto space-y-6">
-        {/* El visualizador siempre visible arriba cuando estamos en tools */}
         {(activeTool === 'visualizer' || activeTool === 'equalizer' || activeTool === 'dsp') && (
           <div>
             <h3 className="text-sm font-medium text-ax-muted uppercase tracking-wider mb-3">
@@ -34,7 +34,7 @@ export const ToolsView: React.FC<ToolsViewProps> = ({ activeTool }) => {
             <h3 className="text-sm font-medium text-ax-muted uppercase tracking-wider mb-3">
               Advanced DSP Processing
             </h3>
-            <AdvancedDSPPanel />
+            <AdvancedDSPPanel onSectionChange={onSectionChange} /> {/* ← PASAR LA PROP */}
           </div>
         )}
 

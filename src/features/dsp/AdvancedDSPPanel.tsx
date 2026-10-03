@@ -12,7 +12,11 @@ import { SmartLimiterPanel } from '../../components/dsp/SmartLimiterPanel';
 import { Switch } from '../../components/Switch';
 import { Library } from 'lucide-react';
 
-export const AdvancedDSPPanel = () => {
+interface AdvancedDSPPanelProps {
+  onSectionChange?: (section: string) => void;
+}
+
+export const AdvancedDSPPanel: React.FC<AdvancedDSPPanelProps> = ({ onSectionChange }) => {
   const [crossoverEnabled, setCrossoverEnabled] = useState(false);
   const [compressorEnabled, setCompressorEnabled] = useState(false);
 
@@ -116,8 +120,8 @@ export const AdvancedDSPPanel = () => {
       <AutoAdjustPanel
         analyser={audioEngine.getAnalyser()}
         epicenter={modules.epicenter}
-        equalizer={modules.eq}
         onApplyEQ={handleApplyEQ}
+        onSectionChange={onSectionChange}
       />
 
       {/* Limiter Inteligente */}

@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { AutoAnalyzer, type AnalysisResult } from '../../core/audio/AudioAnalyzer';
 import { SubHarmonicRestorer } from '../../core/audio/SubHarmonicRestorer';
-import { Equalizer } from '../../core/audio/Equalizer';
+import { usePlayerStore } from '../../store/usePlayerStore';
 import { Sparkles, Zap, Sliders } from 'lucide-react';
 
 interface AutoAdjustPanelProps {
     analyser: AnalyserNode | null;
     epicenter: SubHarmonicRestorer | null;
-    equalizer: Equalizer | null;
     onApplyEQ: (bands: number[]) => void;
+    onSectionChange?: (section: string) => void;
 }
 
 type AutoMode = 'manual' | 'auto-epicenter' | 'auto-eq' | 'auto-full';
@@ -16,9 +16,10 @@ type AutoMode = 'manual' | 'auto-epicenter' | 'auto-eq' | 'auto-full';
 export const AutoAdjustPanel: React.FC<AutoAdjustPanelProps> = ({
     analyser,
     epicenter,
-    equalizer,
     onApplyEQ,
+    onSectionChange,
 }) => {
+    const { setEqBands } = usePlayerStore();
     const [mode, setMode] = useState<AutoMode>('manual');
     const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -31,8 +32,8 @@ export const AutoAdjustPanel: React.FC<AutoAdjustPanelProps> = ({
         const analyzer = new AutoAnalyzer(analyser);
         let totalBass = 0, totalMid = 0, totalHigh = 0;
         const samples = 30;
-
         let sampleCount = 0;
+
         const interval = setInterval(() => {
             const result = analyzer.analyze();
             totalBass += result.bassContent;
@@ -66,21 +67,31 @@ export const AutoAdjustPanel: React.FC<AutoAdjustPanelProps> = ({
     const handleApplyAutoEQ = () => {
         if (!analysis) return;
 
-        if (equalizer) {
-            const eq = equalizer as any;
-            if (typeof eq.setGains === 'function') {
-                eq.setGains(analysis.recommendedEQ);
-            }
-        }
-
         onApplyEQ(analysis.recommendedEQ);
+
+        setEqBands(analysis.recommendedEQ);
+
         setMode('auto-eq');
     };
 
     const handleApplyFull = () => {
+        if (!analysis) return;
+
         handleApplyAutoEpicenter();
         handleApplyAutoEQ();
         setMode('auto-full');
+    };
+
+    const handleManualAdjust = () => {
+        setMode('manual');
+
+        if (analysis) {
+            setEqBands(analysis.recommendedEQ);
+        }
+
+        if (onSectionChange) {
+            onSectionChange('equalizer');
+        }
     };
 
     const getTrackTypeLabel = (type: string) => {
@@ -96,6 +107,7 @@ export const AutoAdjustPanel: React.FC<AutoAdjustPanelProps> = ({
 
     return (
         <div className="bg-gradient-to-br from-slate-900 to-slate-950 p-6 rounded-2xl border border-ax-border">
+            {/* Header */}
             <div className="flex justify-between items-center mb-4">
                 <div>
                     <h3 className="text-lg font-bold text-white flex items-center gap-2">
@@ -132,63 +144,85 @@ export const AutoAdjustPanel: React.FC<AutoAdjustPanelProps> = ({
                             </div>
                         </div>
                         <div className="text-xs text-white">
-                            Tipo de pista: <span className="text-ax-accent font-medium">{getTrackTypeLabel(analysis.trackType)}</span>
+                            Tipo de pista:{' '}
+                            <span className="text-ax-accent font-medium">
+                                {getTrackTypeLabel(analysis.trackType)}
+                            </span>
                         </div>
                     </div>
 
                     {/* Botones de acción */}
-                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+                        {/* Botón 1: Auto-Epicenter */}
                         <button
                             onClick={handleApplyAutoEpicenter}
-                            className={`p-3 rounded-lg border text-sm font-medium transition-colors ${mode === 'auto-epicenter' || mode === 'auto-full'
+                            className={`p-3 rounded-lg border text-sm font-medium transition-colors flex items-center justify-center gap-2 ${mode === 'auto-epicenter' || mode === 'auto-full'
                                     ? 'bg-ax-accent/20 border-ax-accent text-ax-accent'
                                     : 'bg-slate-900/50 border-ax-border text-white hover:border-ax-accent/50'
                                 }`}
                         >
-                            <Zap className="w-4 h-4 inline mr-1" />
-                            Auto-Epicenter
+                            <Zap className="w-4 h-4" />
+                            <span className="hidden sm:inline">Auto-Epicenter</span>
+                            <span className="sm:hidden">Epicenter</span>
                         </button>
+
+                        {/* Botón 2: Auto-EQ */}
                         <button
                             onClick={handleApplyAutoEQ}
-                            className={`p-3 rounded-lg border text-sm font-medium transition-colors ${mode === 'auto-eq' || mode === 'auto-full'
+                            className={`p-3 rounded-lg border text-sm font-medium transition-colors flex items-center justify-center gap-2 ${mode === 'auto-eq' || mode === 'auto-full'
                                     ? 'bg-ax-accent/20 border-ax-accent text-ax-accent'
                                     : 'bg-slate-900/50 border-ax-border text-white hover:border-ax-accent/50'
                                 }`}
                         >
-                            <Sliders className="w-4 h-4 inline mr-1" />
-                            Auto-EQ
+                            <Sliders className="w-4 h-4" />
+                            <span className="hidden sm:inline">Auto-EQ</span>
+                            <span className="sm:hidden">EQ</span>
                         </button>
+
+                        {/* Botón 3: Aplicar Todo (NUEVO) */}
                         <button
                             onClick={handleApplyFull}
-                            className={`p-3 rounded-lg border text-sm font-medium transition-colors ${mode === 'auto-full'
+                            className={`p-3 rounded-lg border text-sm font-medium transition-colors flex items-center justify-center gap-2 ${mode === 'auto-full'
                                     ? 'bg-ax-accent/20 border-ax-accent text-ax-accent'
                                     : 'bg-slate-900/50 border-ax-border text-white hover:border-ax-accent/50'
                                 }`}
                         >
-                            <Sparkles className="w-4 h-4 inline mr-1" />
-                            Auto-Completo
+                            <Sparkles className="w-4 h-4" />
+                            <span className="hidden sm:inline">Aplicar Todo</span>
+                            <span className="sm:hidden">Todo</span>
                         </button>
+
+                        {/* Botón 4: Ajustar Manualmente */}
                         <button
-                            onClick={() => setMode('manual')}
-                            className={`p-3 rounded-lg border text-sm font-medium transition-colors ${mode === 'manual'
+                            onClick={handleManualAdjust}
+                            className={`p-3 rounded-lg border text-sm font-medium transition-colors flex items-center justify-center gap-2 ${mode === 'manual'
                                     ? 'bg-ax-accent/20 border-ax-accent text-ax-accent'
                                     : 'bg-slate-900/50 border-ax-border text-white hover:border-ax-accent/50'
                                 }`}
                         >
-                            Manual
+                            <Sliders className="w-4 h-4" />
+                            <span className="hidden sm:inline">Manual</span>
+                            <span className="sm:hidden">Manual</span>
                         </button>
                     </div>
 
-                    {/* Valores propuestos (siempre visibles en modo manual) */}
-                    {mode === 'manual' && (
-                        <div className="mt-4 p-3 bg-slate-950/30 rounded border border-ax-border">
-                            <div className="text-xs text-ax-muted mb-2">Valores propuestos (ajústalos manualmente):</div>
-                            <div className="text-xs text-white space-y-1">
-                                <div>Epicenter: Restoration +{analysis.recommendedEpicenter.restoration} dB, Sweep {analysis.recommendedEpicenter.sweepFrequency} Hz</div>
-                                <div>EQ: [{analysis.recommendedEQ.map((value: number) => (value > 0 ? '+' : '') + value).join(', ')}]</div>
+                    {/* Valores propuestos (siempre visibles para referencia) */}
+                    <div className="p-3 bg-slate-950/30 rounded border border-ax-border">
+                        <div className="text-xs text-ax-muted mb-2">
+                            Valores recomendados por el análisis:
+                        </div>
+                        <div className="text-xs text-white space-y-1">
+                            <div>
+                                <strong>Epicenter:</strong> Restoration +
+                                {analysis.recommendedEpicenter.restoration?.toFixed(1)} dB, Sweep{' '}
+                                {analysis.recommendedEpicenter.sweepFrequency} Hz
+                            </div>
+                            <div>
+                                <strong>EQ:</strong>[
+                                {analysis.recommendedEQ.map((v) => (v > 0 ? '+' : '') + v).join(', ')}]
                             </div>
                         </div>
-                    )}
+                    </div>
                 </>
             )}
 
