@@ -3,15 +3,16 @@ import { audioEngine } from '../../core/audio/AudioEngine';
 import { Equalizer } from '../../core/audio/Equalizer';
 import { SubHarmonicRestorer } from '../../core/audio/SubHarmonicRestorer';
 import { CrossoverModule, CompressorModule } from '../../core/audio/DSPModules';
+import { SmartLimiter } from '../../core/audio/SmartLimiter';
 import { type AudioPreset } from '../../core/audio/presets';
 import { EpicenterPanel } from '../../components/dsp/EpicenterPanel';
 import { PresetsModal } from '../../components/dsp/PresetsModal';
 import { AutoAdjustPanel } from '../../components/dsp/AutoAdjustPanel';
+import { SmartLimiterPanel } from '../../components/dsp/SmartLimiterPanel';
 import { Switch } from '../../components/Switch';
 import { Library } from 'lucide-react';
 
 export const AdvancedDSPPanel = () => {
- 
   const [crossoverEnabled, setCrossoverEnabled] = useState(false);
   const [compressorEnabled, setCompressorEnabled] = useState(false);
 
@@ -28,11 +29,13 @@ export const AdvancedDSPPanel = () => {
     epicenter: SubHarmonicRestorer | null;
     crossover: CrossoverModule | null;
     compressor: CompressorModule | null;
+    limiter: SmartLimiter | null;
   }>({
     eq: null,
     epicenter: null,
     crossover: null,
     compressor: null,
+    limiter: null,
   });
 
   useEffect(() => {
@@ -43,20 +46,23 @@ export const AdvancedDSPPanel = () => {
     const epicenter = new SubHarmonicRestorer(context);
     const crossover = new CrossoverModule(context);
     const compressor = new CompressorModule(context);
+    const limiter = new SmartLimiter(context);
 
     epicenter.setActive(false);
     crossover.setEnabled(false);
     compressor.setEnabled(false);
+    limiter.setMode('off');
 
-    setModules({ eq, epicenter, crossover, compressor });
+    setModules({ eq, epicenter, crossover, compressor, limiter });
 
     audioEngine.inputNode.connect(eq.inputNode);
     eq.outputNode.connect(epicenter.inputNode);
     epicenter.outputNode.connect(crossover.inputNode);
     crossover.outputNode.connect(compressor.inputNode);
-    compressor.outputNode.connect(audioEngine.outputNode);
+    compressor.outputNode.connect(limiter.inputNode);
+    limiter.outputNode.connect(audioEngine.outputNode);
 
-    console.log('🔗 DSP Chain: EQ -> Epicenter -> Crossover -> Compressor');
+    console.log('🔗 DSP Chain: EQ -> Epicenter -> Crossover -> Compressor -> Limiter');
   }, []);
 
   const handlePresetSelect = (preset: AudioPreset) => {
@@ -113,6 +119,9 @@ export const AdvancedDSPPanel = () => {
         equalizer={modules.eq}
         onApplyEQ={handleApplyEQ}
       />
+
+      {/* Limiter Inteligente */}
+      <SmartLimiterPanel limiter={modules.limiter} />
 
       {/* Crossover */}
       <div className="bg-slate-900/50 p-4 rounded-lg border border-ax-border">
