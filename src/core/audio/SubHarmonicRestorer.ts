@@ -1,171 +1,171 @@
+export interface SubHarmonicState {
+    active: boolean;
+    mode: 'pro' | 'standard';
+    restoration: number;      // -12 dB a +12 dB (default: +8)
+    sweepFrequency: number;   // 20 Hz - 120 Hz (default: 70)
+    wide: number;             // 0% - 100% (default: 60)
+    frequencyRange: { low: number; high: number }; // default: {20, 60}
+    depth: number;            // Profundidad del bajo (0-100, default: 70)
+    body: number;             // Cuerpo del bajo (0-100, default: 50)
+    presence: number;         // Presencia del bajo (0-100, default: 40)
+}
+
 export class SubHarmonicRestorer {
     public inputNode: GainNode;
     public outputNode: GainNode;
-
     private context: AudioContext;
-    private isEnabled: boolean = false;
+    private state: SubHarmonicState;
 
     private lowpassFilter: BiquadFilterNode;
-    private subGenerator: WaveShaperNode;
-    private subGain: GainNode;
-    private sweepFilter: BiquadFilterNode;
-    private wideSplitter: ChannelSplitterNode;
-    private wideMerger: ChannelMergerNode;
-    private wideGainL: GainNode;
-    private wideGainR: GainNode;
-
+    private highpassFilter: BiquadFilterNode;
+    private shaper: WaveShaperNode;
+    private subOscillatorGain: GainNode;
     private dryGain: GainNode;
     private wetGain: GainNode;
     private bypassGain: GainNode;
+    private wideGain: GainNode;
     private analyser: AnalyserNode;
-
-    private params = {
-        restoration: 8,
-        subRange: 40,
-        sweep: 70,
-        wide: 60,
-    };
 
     constructor(context: AudioContext) {
         this.context = context;
         this.inputNode = context.createGain();
         this.outputNode = context.createGain();
-        this.bypassGain = context.createGain();
-        this.bypassGain.gain.value = 1;
+
+        this.state = {
+            active: false,
+            mode: 'pro',
+            restoration: 8,
+            sweepFrequency: 70,
+            wide: 60,
+            frequencyRange: { low: 20, high: 60 },
+            depth: 70,
+            body: 50,
+            presence: 40,
+        };
 
         this.lowpassFilter = context.createBiquadFilter();
         this.lowpassFilter.type = 'lowpass';
-        this.lowpassFilter.frequency.value = this.params.subRange;
+        this.lowpassFilter.frequency.value = 120;
         this.lowpassFilter.Q.value = 0.707;
 
-        this.subGenerator = context.createWaveShaper();
-        this.subGenerator.curve = this.createSubHarmonicCurve();
-        this.subGenerator.oversample = '4x';
+        this.highpassFilter = context.createBiquadFilter();
+        this.highpassFilter.type = 'highpass';
+        this.highpassFilter.frequency.value = 20;
+        this.highpassFilter.Q.value = 0.707;
 
-        this.subGain = context.createGain();
-        this.subGain.gain.value = this.dbToGain(this.params.restoration);
+        this.shaper = context.createWaveShaper();
+        this.shaper.curve = this.makeDistortionCurve(30);
+        this.shaper.oversample = '4x';
 
-        this.sweepFilter = context.createBiquadFilter();
-        this.sweepFilter.type = 'lowpass';
-        this.sweepFilter.frequency.value = this.params.sweep;
-        this.sweepFilter.Q.value = 1.0;
-
-        this.wideSplitter = context.createChannelSplitter(2);
-        this.wideMerger = context.createChannelMerger(2);
-        this.wideGainL = context.createGain();
-        this.wideGainR = context.createGain();
-        this.applyWide(this.params.wide);
+        this.subOscillatorGain = context.createGain();
+        this.subOscillatorGain.gain.value = 0;
 
         this.dryGain = context.createGain();
         this.dryGain.gain.value = 1;
+
         this.wetGain = context.createGain();
-        this.wetGain.gain.value = 0.5;
+        this.wetGain.gain.value = 0;
 
-        this.inputNode.connect(this.lowpassFilter);
-        this.lowpassFilter.connect(this.subGenerator);
-        this.subGenerator.connect(this.subGain);
-        this.subGain.connect(this.sweepFilter);
-        this.sweepFilter.connect(this.wideSplitter);
+        this.bypassGain = context.createGain();
+        this.bypassGain.gain.value = 1;
 
-        this.wideSplitter.connect(this.wideGainL, 0);
-        this.wideSplitter.connect(this.wideGainR, 1);
-        this.wideGainL.connect(this.wideMerger, 0, 0);
-        this.wideGainR.connect(this.wideMerger, 0, 1);
+        this.wideGain = context.createGain();
+        this.wideGain.gain.value = 0.6;
 
-        this.wideMerger.connect(this.wetGain);
-        this.wetGain.connect(this.outputNode);
-
-        this.inputNode.connect(this.dryGain);
-        this.dryGain.connect(this.outputNode);
-
-        this.inputNode.connect(this.bypassGain);
-        this.bypassGain.connect(this.outputNode);
         this.analyser = context.createAnalyser();
         this.analyser.fftSize = 256;
         this.analyser.smoothingTimeConstant = 0.8;
-        this.outputNode.connect(this.analyser);
+        this.inputNode.connect(this.highpassFilter);
+        this.highpassFilter.connect(this.lowpassFilter);
+        this.lowpassFilter.connect(this.shaper);
+        this.shaper.connect(this.subOscillatorGain);
+        this.subOscillatorGain.connect(this.wideGain);
+        this.wideGain.connect(this.wetGain);
+        this.wetGain.connect(this.outputNode);
+        this.inputNode.connect(this.dryGain);
+        this.dryGain.connect(this.outputNode);
+        this.inputNode.connect(this.bypassGain);
+        this.bypassGain.connect(this.outputNode);
+        this.wetGain.connect(this.analyser);
     }
 
-    public setEnabled(enabled: boolean): void {
-        this.isEnabled = enabled;
-        const bypassValue = enabled ? 0 : 1;
+    public setActive(active: boolean): void {
+        this.state.active = active;
+        const bypassValue = active ? 0 : 1;
         this.bypassGain.gain.setTargetAtTime(bypassValue, this.context.currentTime, 0.05);
     }
 
-    public getEnabled(): boolean {
-        return this.isEnabled;
+    public getActive(): boolean {
+        return this.state.active;
     }
 
     public setRestoration(db: number): void {
-        this.params.restoration = Math.max(-60, Math.min(12, db));
-        const gainValue = this.params.restoration <= -60 ? 0 : this.dbToGain(this.params.restoration);
-        this.subGain.gain.setTargetAtTime(gainValue, this.context.currentTime, 0.1);
+        this.state.restoration = db;
+        const linearGain = Math.pow(10, db / 20);
+        this.subOscillatorGain.gain.setTargetAtTime(linearGain, this.context.currentTime, 0.1);
     }
 
-    public setSubRange(hz: number): void {
-        this.params.subRange = Math.max(20, Math.min(60, hz));
-        this.lowpassFilter.frequency.setTargetAtTime(this.params.subRange, this.context.currentTime, 0.1);
-    }
-
-    public setSweep(hz: number): void {
-        this.params.sweep = Math.max(20, Math.min(200, hz));
-        this.sweepFilter.frequency.setTargetAtTime(this.params.sweep, this.context.currentTime, 0.1);
+    public setSweepFrequency(freq: number): void {
+        this.state.sweepFrequency = freq;
+        this.lowpassFilter.frequency.setTargetAtTime(freq, this.context.currentTime, 0.1);
     }
 
     public setWide(percent: number): void {
-        this.params.wide = Math.max(0, Math.min(100, percent));
-        this.applyWide(this.params.wide);
+        this.state.wide = percent;
+        this.wideGain.gain.setTargetAtTime(percent / 100, this.context.currentTime, 0.1);
     }
 
-    public setMix(percent: number): void {
-        const normalized = Math.max(0, Math.min(100, percent)) / 100;
-        this.wetGain.gain.setTargetAtTime(normalized, this.context.currentTime, 0.1);
+    public setDepth(value: number): void {
+        this.state.depth = value;
+        const normalized = value / 100;
+        this.shaper.curve = this.makeDistortionCurve(10 + normalized * 40);
     }
 
-    public getParams() {
-        return { ...this.params };
+    public setBody(value: number): void {
+        this.state.body = value;
+        const normalized = value / 100;
+        const lowFreq = 20 + normalized * 20; // 20-40 Hz
+        const highFreq = 40 + normalized * 40; // 40-80 Hz
+        this.state.frequencyRange = { low: lowFreq, high: highFreq };
+        this.highpassFilter.frequency.setTargetAtTime(lowFreq, this.context.currentTime, 0.1);
     }
 
-    public applyParams(params: Partial<typeof this.params>): void {
-        if (params.restoration !== undefined) this.setRestoration(params.restoration);
-        if (params.subRange !== undefined) this.setSubRange(params.subRange);
-        if (params.sweep !== undefined) this.setSweep(params.sweep);
-        if (params.wide !== undefined) this.setWide(params.wide);
+    public setPresence(value: number): void {
+        this.state.presence = value;
+        const normalized = value / 100;
+        this.wetGain.gain.setTargetAtTime(normalized * 0.8, this.context.currentTime, 0.1);
     }
-    
+
+    public getState(): SubHarmonicState {
+        return { ...this.state };
+    }
+
+    public applyState(state: Partial<SubHarmonicState>): void {
+        if (state.active !== undefined) this.setActive(state.active);
+        if (state.restoration !== undefined) this.setRestoration(state.restoration);
+        if (state.sweepFrequency !== undefined) this.setSweepFrequency(state.sweepFrequency);
+        if (state.wide !== undefined) this.setWide(state.wide);
+        if (state.depth !== undefined) this.setDepth(state.depth);
+        if (state.body !== undefined) this.setBody(state.body);
+        if (state.presence !== undefined) this.setPresence(state.presence);
+        if (state.mode !== undefined) this.state.mode = state.mode;
+        if (state.frequencyRange !== undefined) this.state.frequencyRange = state.frequencyRange;
+    }
+
     public getAnalyser(): AnalyserNode {
         return this.analyser;
     }
 
-    public getLevel(): number {
-        if (!this.analyser) return 0;
-        const data = new Uint8Array(this.analyser.frequencyBinCount);
-        this.analyser.getByteFrequencyData(data);
-        const sum = data.reduce((a, b) => a + b, 0);
-        return (sum / data.length / 255) * 100;
-    }
-
-    private dbToGain(db: number): number {
-        return Math.pow(10, db / 20);
-    }
-
-    private applyWide(percent: number): void {
-        const factor = percent / 100;
-        const leftGain = 0.5 + factor * 0.5;
-        const rightGain = 0.5 + factor * 0.5;
-        this.wideGainL.gain.setTargetAtTime(leftGain, this.context.currentTime, 0.1);
-        this.wideGainR.gain.setTargetAtTime(rightGain, this.context.currentTime, 0.1);
-    }
-
-    private createSubHarmonicCurve(): Float32Array<ArrayBuffer> {
-        const samples = 44100;
-        const curve = new Float32Array(new ArrayBuffer(samples * Float32Array.BYTES_PER_ELEMENT));
-        const k = 50;
+    private makeDistortionCurve(amount: number): Float32Array<ArrayBuffer> {
+        const k = amount;
+        const n_samples = 44100;
+        const buffer = new ArrayBuffer(n_samples * Float32Array.BYTES_PER_ELEMENT);
+        const curve = new Float32Array(buffer);
         const deg = Math.PI / 180;
 
-        for (let i = 0; i < samples; i++) {
-            const x = (i * 2) / samples - 1;
-            curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
+        for (let i = 0; i < n_samples; ++i) {
+            const x = (i * 2) / n_samples - 1;
+            curve[i] = (3 + k) * x * 20 * deg / (Math.PI + k * Math.abs(x));
         }
         return curve;
     }

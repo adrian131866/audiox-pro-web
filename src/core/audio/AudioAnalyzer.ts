@@ -1,153 +1,130 @@
-export interface AudioProfile {
-    bassLevel: number;
-    midLevel: number;
-    highLevel: number;
-    dynamicRange: number;
-    stereoWidth: number;
-    suggestedGenre: string;
+import { type SubHarmonicState } from './SubHarmonicRestorer';
+
+export interface AnalysisResult {
+    bassContent: number;      // 0-100: contenido de graves
+    midContent: number;       // 0-100: contenido de medios
+    highContent: number;      // 0-100: contenido de agudos
+    dynamicRange: number;     // 0-100: rango dinámico
+    recommendedEpicenter: Partial<SubHarmonicState>;
+    recommendedEQ: number[];  // 10 bandas
+    trackType: 'bass-heavy' | 'vocal' | 'balanced' | 'bright' | 'muddy';
 }
 
-export class AudioAnalyzer {
+export class AutoAnalyzer {
     private analyser: AnalyserNode;
-    private context: AudioContext;
-    private frequencyData: Uint8Array<ArrayBuffer>;
+    private dataArray: Uint8Array<ArrayBuffer>;
 
-    constructor(context: AudioContext, analyser: AnalyserNode) {
-        this.context = context;
+    constructor(analyser: AnalyserNode) {
         this.analyser = analyser;
-        this.analyser.fftSize = 2048;
-        this.analyser.smoothingTimeConstant = 0.8;
-
-        this.frequencyData = new Uint8Array(this.analyser.frequencyBinCount);
+        this.dataArray = new Uint8Array(new ArrayBuffer(analyser.frequencyBinCount));
     }
 
-    public analyze(): AudioProfile {
-        this.analyser.getByteFrequencyData(this.frequencyData);
+    public analyze(): AnalysisResult {
+        this.analyser.getByteFrequencyData(this.dataArray);
 
-        const sampleRate = this.context.sampleRate;
-        const binSize = sampleRate / this.analyser.fftSize;
+        const binCount = this.dataArray.length;
+        const sampleRate = this.analyser.context.sampleRate;
+        const binSize = sampleRate / (binCount * 2);
 
-        const bassRange = { min: 20, max: 250 };
-        const midRange = { min: 250, max: 4000 };
-        const highRange = { min: 4000, max: 20000 };
+        const bassEnd = Math.floor(250 / binSize);
+        const midEnd = Math.floor(4000 / binSize);
 
-        const bassLevel = this.calculateBandLevel(bassRange, binSize);
-        const midLevel = this.calculateBandLevel(midRange, binSize);
-        const highLevel = this.calculateBandLevel(highRange, binSize);
+        let bassSum = 0, midSum = 0, highSum = 0;
+        let maxVal = 0;
 
-        const dynamicRange = this.calculateDynamicRange();
-        const stereoWidth = this.calculateStereoWidth();
-        const suggestedGenre = this.suggestGenre(bassLevel, midLevel, highLevel, dynamicRange);
+        for (let i = 0; i < binCount; i++) {
+            const val = this.dataArray[i];
+            if (val > maxVal) maxVal = val;
+
+            if (i < bassEnd) bassSum += val;
+            else if (i < midEnd) midSum += val;
+            else highSum += val;
+        }
+
+        const bassContent = (bassSum / (bassEnd * 255)) * 100;
+        const midContent = (midSum / ((midEnd - bassEnd) * 255)) * 100;
+        const highContent = (highSum / ((binCount - midEnd) * 255)) * 100;
+
+        let trackType: AnalysisResult['trackType'] = 'balanced';
+        if (bassContent > 60) trackType = 'bass-heavy';
+        else if (midContent > 60 && bassContent < 30) trackType = 'vocal';
+        else if (highContent > 60) trackType = 'bright';
+        else if (bassContent > 50 && midContent > 50 && highContent < 30) trackType = 'muddy';
+
+        const recommendedEpicenter = this.recommendEpicenter(bassContent, trackType);
+        const recommendedEQ = this.recommendEQ(bassContent, midContent, highContent, trackType);
 
         return {
-            bassLevel,
-            midLevel,
-            highLevel,
-            dynamicRange,
-            stereoWidth,
-            suggestedGenre
+            bassContent,
+            midContent,
+            highContent,
+            dynamicRange: (maxVal / 255) * 100,
+            recommendedEpicenter,
+            recommendedEQ,
+            trackType,
         };
     }
 
-    private calculateBandLevel(range: { min: number; max: number }, binSize: number): number {
-        const startBin = Math.floor(range.min / binSize);
-        const endBin = Math.floor(range.max / binSize);
-
-        let sum = 0;
-        let count = 0;
-
-        for (let i = startBin; i < endBin && i < this.frequencyData.length; i++) {
-            sum += this.frequencyData[i];
-            count++;
+    private recommendEpicenter(bassContent: number, trackType: string): Partial<SubHarmonicState> {
+        // Si la pista tiene pocos graves, activar Epicenter con más intensidad
+        if (bassContent < 30 || trackType === 'vocal' || trackType === 'bright') {
+            return {
+                active: true,
+                restoration: 8 + (30 - bassContent) * 0.2, // Más restauración si hay menos graves
+                sweepFrequency: 70,
+                wide: 60,
+                depth: 75,
+                body: 60,
+                presence: 50,
+            };
         }
 
-        return count > 0 ? (sum / count / 255) * 100 : 0;
-    }
-
-    private calculateDynamicRange(): number {
-        let peak = 0;
-        let sum = 0;
-
-        for (let i = 0; i < this.frequencyData.length; i++) {
-            const value = this.frequencyData[i];
-            if (value > peak) peak = value;
-            sum += value;
-        }
-
-        const rms = Math.sqrt(sum / this.frequencyData.length);
-        const dynamicRange = peak - rms;
-
-        return Math.min(100, (dynamicRange / 255) * 100);
-    }
-
-    private calculateStereoWidth(): number {
-        const highEnergy = this.calculateBandLevel(
-            { min: 4000, max: 20000 },
-            this.context.sampleRate / this.analyser.fftSize
-        );
-
-        return Math.min(100, highEnergy * 1.5);
-    }
-
-    private suggestGenre(bass: number, mid: number, high: number, dynamic: number): string {
-        if (bass > 70 && dynamic < 40) return 'Reggaeton/Trap';
-        if (bass > 60 && mid > 50) return 'Pop';
-        if (bass > 50 && high > 60) return 'Electrónica';
-        if (mid > 60 && dynamic > 50) return 'Rock';
-        if (mid > 50 && bass < 40) return 'Jazz/Vocal';
-        if (bass > 70 && mid < 40) return 'Bass Boost';
-
-        return 'General';
-    }
-
-    public suggestEQ(): number[] {
-        const profile = this.analyze();
-        const eqBands = new Array(10).fill(0);
-
-        if (profile.bassLevel < 30) {
-            eqBands[0] = 6;
-            eqBands[1] = 5;
-            eqBands[2] = 4;
-        } else if (profile.bassLevel > 70) {
-            eqBands[0] = -3;
-            eqBands[1] = -2;
-            eqBands[2] = -1;
-        }
-
-        if (profile.midLevel < 40) {
-            eqBands[3] = 3;
-            eqBands[4] = 4;
-            eqBands[5] = 3;
-        } else if (profile.midLevel > 70) {
-            eqBands[3] = -2;
-            eqBands[4] = -1;
-            eqBands[5] = -1;
-        }
-
-        if (profile.highLevel < 30) {
-            eqBands[6] = 2;
-            eqBands[7] = 4;
-            eqBands[8] = 5;
-            eqBands[9] = 6;
-        } else if (profile.highLevel > 70) {
-            eqBands[6] = -1;
-            eqBands[7] = -2;
-            eqBands[8] = -2;
-            eqBands[9] = -3;
-        }
-
-        return eqBands;
-    }
-
-    public suggestSubHarmonic() {
-        const profile = this.analyze();
-
+        // Si ya tiene buenos graves, usar Epicenter suave
         return {
-            restoration: profile.bassLevel < 40 ? 8 : profile.bassLevel < 60 ? 4 : 0,
-            subRange: profile.bassLevel < 40 ? 40 : 30,
-            sweep: profile.bassLevel < 40 ? 70 : 50,
-            wide: profile.stereoWidth < 50 ? 60 : 40,
-            mix: profile.bassLevel < 40 ? 50 : 30
+            active: true,
+            restoration: 4,
+            sweepFrequency: 80,
+            wide: 50,
+            depth: 50,
+            body: 40,
+            presence: 30,
         };
+    }
+
+    private recommendEQ(bass: number, mid: number, high: number, trackType: string): number[] {
+        const eq = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+        const bassBias = Math.max(-2, Math.min(2, Math.round((bass - 50) / 25)));
+        const midBias = Math.max(-2, Math.min(2, Math.round((mid - 50) / 25)));
+        const highBias = Math.max(-2, Math.min(2, Math.round((high - 50) / 25)));
+
+        if (trackType === 'bass-heavy') {
+            eq[0] = -3; eq[1] = -2; eq[2] = -1; eq[3] = 0; eq[4] = 1;
+            eq[5] = 2; eq[6] = 2; eq[7] = 1; eq[8] = 0; eq[9] = 0;
+        } else if (trackType === 'vocal') {
+            eq[0] = -2; eq[1] = -1; eq[2] = 0; eq[3] = 1; eq[4] = 2;
+            eq[5] = 3; eq[6] = 2; eq[7] = 1; eq[8] = 0; eq[9] = -1;
+        } else if (trackType === 'bright') {
+            eq[0] = 1; eq[1] = 1; eq[2] = 1; eq[3] = 0; eq[4] = 0;
+            eq[5] = 0; eq[6] = 0; eq[7] = -1; eq[8] = -2; eq[9] = -3;
+        } else if (trackType === 'muddy') {
+            eq[0] = 2; eq[1] = 1; eq[2] = 0; eq[3] = -2; eq[4] = -1;
+            eq[5] = 0; eq[6] = 1; eq[7] = 2; eq[8] = 2; eq[9] = 1;
+        } else {
+            eq[0] = 2; eq[1] = 1; eq[2] = 0; eq[3] = 0; eq[4] = 0;
+            eq[5] = 0; eq[6] = 0; eq[7] = 0; eq[8] = 1; eq[9] = 2;
+        }
+
+        for (let i = 0; i < eq.length; i++) {
+            if (i < 3) {
+                eq[i] += bassBias;
+            } else if (i < 7) {
+                eq[i] += midBias;
+            } else {
+                eq[i] += highBias;
+            }
+        }
+
+        return eq.map(value => Math.max(-6, Math.min(6, value)));
     }
 }
