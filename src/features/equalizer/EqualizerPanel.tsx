@@ -109,8 +109,7 @@ export const EqualizerPanel: React.FC<EqualizerPanelProps> = ({ onEqualizerReady
                 {/* Track del slider (fondo) */}
                 <div className="flex-1 w-full relative flex items-center justify-center">
                   {/* Línea de referencia 0 dB */}
-                  <div className="absolute w-full h-0.5 bg-slate-600 z-0"></div>
-                  
+                  <div className="absolute w-full h-0.5 bg-slate-600 z-0"></div>  
                   {/* Barra visual de ganancia */}
                   <div className="absolute w-8 rounded-full overflow-hidden bg-slate-800 z-10" style={{ height: '90%' }}>
                     {/* Mitad superior (ganancia positiva) */}
@@ -137,10 +136,9 @@ export const EqualizerPanel: React.FC<EqualizerPanelProps> = ({ onEqualizerReady
                     step="0.5"
                     value={gain}
                     onChange={(e) => handleBandChange(index, parseFloat(e.target.value))}
-                    className="absolute w-full h-full opacity-0 cursor-pointer z-20"
+                      className="absolute w-full h-full opacity-0 cursor-pointer z-20"
                     style={{ writingMode: 'vertical-lr', direction: 'rtl' }}
                   />
-
                   {/* Thumb visual del slider */}
                   <div 
                     className="absolute w-10 h-6 bg-gradient-to-b from-slate-300 to-slate-500 rounded shadow-lg border-2 border-slate-600 z-30 pointer-events-none transition-all duration-150"
