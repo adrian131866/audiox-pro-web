@@ -1,13 +1,16 @@
+// src/core/audio/SubHarmonicRestorer.ts
+// Motor Epicenter Profesional: Bass Enhancer sin distorsión metálica
+
 export interface SubHarmonicState {
   active: boolean;
   mode: 'pro' | 'standard';
-  restoration: number;     
-  sweepFrequency: number;  
-  wide: number;             
+  restoration: number;
+  sweepFrequency: number;
+  wide: number;
   frequencyRange: { low: number; high: number };
-  depth: number;     
-  body: number;         
-  presence: number;  
+  depth: number;
+  body: number;
+  presence: number;
 }
 
 export class SubHarmonicRestorer {
@@ -15,13 +18,14 @@ export class SubHarmonicRestorer {
   public outputNode: GainNode;
   private context: AudioContext;
   private state: SubHarmonicState;
+
   private lowpassFilter: BiquadFilterNode;
   private highpassFilter: BiquadFilterNode;
-  private bassBoost: BiquadFilterNode; 
-  private shaper: WaveShaperNode;  
-  private subGain: GainNode;        
-  private dryGain: GainNode;           
-  private wetGain: GainNode;           
+  private bassBoost: BiquadFilterNode;
+  private shaper: WaveShaperNode;
+  private subGain: GainNode;
+  private dryGain: GainNode;
+  private wetGain: GainNode;
   private bypassGain: GainNode;
   private analyser: AnalyserNode;
 
@@ -50,13 +54,15 @@ export class SubHarmonicRestorer {
     this.lowpassFilter.type = 'lowpass';
     this.lowpassFilter.frequency.value = 120;
     this.lowpassFilter.Q.value = 0.707;
+
     this.bassBoost = context.createBiquadFilter();
     this.bassBoost.type = 'lowshelf';
     this.bassBoost.frequency.value = 100;
     this.bassBoost.gain.value = 0;
+
     this.shaper = context.createWaveShaper();
-    this.shaper.curve = this.makeSmoothSaturationCurve(10); 
-    this.shaper.oversample = '4x'; 
+    this.shaper.curve = this.makeSmoothSaturationCurve(10) as Float32Array;
+    this.shaper.oversample = '4x';
 
     this.subGain = context.createGain();
     this.subGain.gain.value = 0;
@@ -72,8 +78,11 @@ export class SubHarmonicRestorer {
 
     this.analyser = context.createAnalyser();
     this.analyser.fftSize = 256;
+
+    
     this.inputNode.connect(this.dryGain);
     this.dryGain.connect(this.outputNode);
+
     this.inputNode.connect(this.highpassFilter);
     this.highpassFilter.connect(this.lowpassFilter);
     this.lowpassFilter.connect(this.bassBoost);
@@ -81,8 +90,10 @@ export class SubHarmonicRestorer {
     this.shaper.connect(this.subGain);
     this.subGain.connect(this.wetGain);
     this.wetGain.connect(this.outputNode);
+
     this.inputNode.connect(this.bypassGain);
     this.bypassGain.connect(this.outputNode);
+
     this.outputNode.connect(this.analyser);
   }
 
@@ -96,8 +107,8 @@ export class SubHarmonicRestorer {
 
   public setRestoration(db: number): void {
     this.state.restoration = db;
-    const normalized = (db + 12) / 24; // 0 a 1
-    this.shaper.curve = this.makeSmoothSaturationCurve(5 + normalized * 30);
+    const normalized = (db + 12) / 24;
+    this.shaper.curve = this.makeSmoothSaturationCurve(5 + normalized * 30) as Float32Array;
     this.subGain.gain.setTargetAtTime(normalized * 0.8, this.context.currentTime, 0.1);
   }
 
@@ -121,12 +132,11 @@ export class SubHarmonicRestorer {
   public setBody(value: number): void {
     this.state.body = value;
     const normalized = value / 100;
-    this.bassBoost.gain.setTargetAtTime(normalized * 12, this.context.currentTime, 0.1); // 0 a +12dB
+    this.bassBoost.gain.setTargetAtTime(normalized * 12, this.context.currentTime, 0.1);
   }
 
   public setPresence(value: number): void {
     this.state.presence = value;
-   
     const normalized = value / 100;
     this.wetGain.gain.setTargetAtTime(normalized * 0.6, this.context.currentTime, 0.1);
   }
@@ -158,4 +168,3 @@ export class SubHarmonicRestorer {
     return curve;
   }
 }
-
