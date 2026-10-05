@@ -65,11 +65,11 @@ export class CompressorModule {
     this.bypassGain.gain.value = 1;
 
     this.node = context.createDynamicsCompressor();
-    this.node.threshold.value = -24;
-    this.node.knee.value = 30;
-    this.node.ratio.value = 12;
-    this.node.attack.value = 0.003;
-    this.node.release.value = 0.25;
+    this.node.threshold.value = -12;
+    this.node.knee.value = 10;
+    this.node.ratio.value = 4;
+    this.node.attack.value = 0.001;
+    this.node.release.value = 0.15;
 
     this.inputNode.connect(this.node);
     this.node.connect(this.outputNode);
