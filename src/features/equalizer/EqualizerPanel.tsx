@@ -21,8 +21,7 @@ export const EqualizerPanel: React.FC<EqualizerPanelProps> = ({ onEqualizerReady
     const eq = new Equalizer(context);
     setEqualizer(eq);
 
-    audioEngine.connectDSPModule(eq.inputNode, eq.outputNode);
-
+   
     eqBands.forEach((gain, index) => {
       eq.setBandGain(index, gain);
     });
