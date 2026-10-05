@@ -61,7 +61,7 @@ export class SubHarmonicRestorer {
     this.bassBoost.gain.value = 0;
 
     this.shaper = context.createWaveShaper();
-    this.shaper.curve = this.makeSmoothSaturationCurve(10) as Float32Array;
+    this.shaper.curve = this.makeSmoothSaturationCurve(10) as any;
     this.shaper.oversample = '4x';
 
     this.subGain = context.createGain();
@@ -108,7 +108,7 @@ export class SubHarmonicRestorer {
   public setRestoration(db: number): void {
     this.state.restoration = db;
     const normalized = (db + 12) / 24;
-    this.shaper.curve = this.makeSmoothSaturationCurve(5 + normalized * 30) as Float32Array;
+    this.shaper.curve = this.makeSmoothSaturationCurve(5 + normalized * 30) as any;
     this.subGain.gain.setTargetAtTime(normalized * 0.8, this.context.currentTime, 0.1);
   }
 
