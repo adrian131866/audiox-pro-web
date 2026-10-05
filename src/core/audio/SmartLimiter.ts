@@ -36,11 +36,11 @@ export class SmartLimiter {
         this.compressor = context.createDynamicsCompressor();
         this.compressor.threshold.value = -1;
         this.compressor.knee.value = 0;
-        this.compressor.ratio.value = 20; // Ratio alto = limiter
+        this.compressor.ratio.value = 20; 
         this.compressor.attack.value = 0.001;
         this.compressor.release.value = 0.05;
 
-        // Analyser para GR general
+       
         this.analyser = context.createAnalyser();
         this.analyser.fftSize = 1024;
         this.analyser.smoothingTimeConstant = 0.8;
@@ -61,21 +61,21 @@ export class SmartLimiter {
         this.state.mode = mode;
 
         if (mode === 'off') {
-            // Bypass: threshold muy alto para que no limite
+          
             this.compressor.threshold.setTargetAtTime(0, this.context.currentTime, 0.1);
             this.compressor.ratio.setTargetAtTime(1, this.context.currentTime, 0.1);
         } else if (mode === 'ai-sens') {
-            // AI Sens: threshold dinámico basado en análisis RMS
+            
             this.compressor.threshold.setTargetAtTime(-3, this.context.currentTime, 0.1);
             this.compressor.ratio.setTargetAtTime(15, this.context.currentTime, 0.1);
             this.compressor.attack.setTargetAtTime(0.003, this.context.currentTime, 0.1);
             this.compressor.release.setTargetAtTime(0.1, this.context.currentTime, 0.1);
         } else if (mode === 'safe-bass') {
-            // Safe Bass: protección agresiva de graves
+        
             this.compressor.threshold.setTargetAtTime(-6, this.context.currentTime, 0.1);
             this.compressor.ratio.setTargetAtTime(20, this.context.currentTime, 0.1);
             this.compressor.attack.setTargetAtTime(0.001, this.context.currentTime, 0.1);
-            this.compressor.release.setTargetAtTime(0.05, this.context.currentTime, 0.1);
+            this.compressor.release.setTargetAtTime(0.01, this.context.currentTime, 0.1);
         }
     }
 
