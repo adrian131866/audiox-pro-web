@@ -1,20 +1,59 @@
-// src/components/DropZone.tsx
 import { Upload, Music, FolderOpen } from 'lucide-react';
 import { useRef } from 'react';
+import { usePlayerStore } from '../store/usePlayerStore';
+import { extractMetadata, getFileType } from '../core/audio/MetadataExtractor';
+import { type Track } from '../types';
 
 interface DropZoneProps {
-  onFilesSelected: (files: File[]) => void;
+  onFilesSelected?: (files: File[]) => void;
 }
 
 export const DropZone: React.FC<DropZoneProps> = ({ onFilesSelected }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
+  const addToQueue = usePlayerStore((state) => state.addToQueue);
+
+  const processFiles = async (files: File[]) => {
+    const audioVideoFiles = files.filter(file => {
+      const type = getFileType(file);
+      return type === 'audio' || type === 'video';
+    });
+
+    if (onFilesSelected) {
+      onFilesSelected(audioVideoFiles);
+    }
+
+    for (const file of audioVideoFiles) {
+      try {
+        const metadata = await extractMetadata(file);
+        const trackType = getFileType(file);
+
+        const track: Track = {
+          id: `${file.name}-${Date.now()}-${Math.random()}`,
+          name: metadata.name || file.name,
+          artist: metadata.artist || 'Desconocido',
+          album: metadata.album || 'Desconocido',
+          year: metadata.year,
+          genre: metadata.genre,
+          duration: metadata.duration || 0,
+          type: trackType,
+          file: file,
+          url: URL.createObjectURL(file),
+          coverArt: metadata.coverArt,
+          coverArtMimeType: metadata.coverArtMimeType,
+        };
+
+        addToQueue(track);
+      } catch (error) {
+        console.error('Error procesando archivo:', file.name, error);
+      }
+    }
+  };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files && files.length > 0) {
-      onFilesSelected(Array.from(files));
-      // Resetear el input para permitir seleccionar el mismo archivo otra vez
+      processFiles(Array.from(files));
       event.target.value = '';
     }
   };
@@ -27,10 +66,10 @@ export const DropZone: React.FC<DropZoneProps> = ({ onFilesSelected }) => {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 0) {
-      onFilesSelected(files);
+      processFiles(files);
     }
   };
 
@@ -46,9 +85,9 @@ export const DropZone: React.FC<DropZoneProps> = ({ onFilesSelected }) => {
             <Upload className="w-7 h-7 sm:w-8 sm:h-8 text-ax-muted" />
           </div>
         </div>
-        
+
         <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">
-          Carga Archivo O Carpeta De Audio 
+          Drop audio files or folders
         </h3>
         <p className="text-xs sm:text-sm text-ax-muted mb-6 sm:mb-8 px-4">
           MP3, FLAC, WAV, AAC, OGG, OPUS, M4A, MP4, WEBM —<br className="hidden sm:block" />
@@ -61,19 +100,18 @@ export const DropZone: React.FC<DropZoneProps> = ({ onFilesSelected }) => {
             className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-ax-accent hover:bg-ax-accentHover text-white rounded-lg text-sm font-medium transition-colors"
           >
             <Music className="w-4 h-4" />
-            Elegir Archivo
+            Choose files
           </button>
-          
+
           <button
             onClick={() => folderInputRef.current?.click()}
             className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-ax-card hover:bg-ax-panel border border-ax-border rounded-lg text-sm font-medium text-white transition-colors"
           >
             <FolderOpen className="w-4 h-4" />
-            Elegir Carpeta 
+            Choose folder
           </button>
         </div>
 
-        {/* Input para archivos de audio - optimizado para móvil */}
         <input
           ref={fileInputRef}
           type="file"
@@ -85,7 +123,7 @@ export const DropZone: React.FC<DropZoneProps> = ({ onFilesSelected }) => {
         <input
           ref={folderInputRef}
           type="file"
-          // @ts-ignore - webkitdirectory es una propiedad no estándar pero soportada
+          // @ts-ignore
           webkitdirectory=""
           directory=""
           className="hidden"

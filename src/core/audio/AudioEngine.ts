@@ -1,4 +1,7 @@
 export class AudioEngine {
+  public setVolume(newVolume: number): void {
+    this.setMasterVolume(newVolume);
+  }
   private context: AudioContext | null = null;
   private masterGain: GainNode | null = null;
   private analyser: AnalyserNode | null = null;

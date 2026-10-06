@@ -1,16 +1,25 @@
-export type MediaType = 'audio' | 'video';
-
 export interface Track {
   id: string;
-  file: File;
   name: string;
-  url: string; // URL del objeto local (Blob URL)
-  type: MediaType;
-  duration?: number;
-  artist?: string;
-  album?: string;
+  artist: string;
+  album: string;
+  year?: number;
+  genre?: string;
+  duration: number;
+  type: 'audio' | 'video';
+  file: File;
+  url: string;
+  coverArt?: string; // URL de la carátula del álbum (base64 o blob URL)
+  coverArtMimeType?: string;
 }
 
+export interface AudioProfile {
+  id: string;
+  name: string;
+  eqBands: number[];
+  bassIntensity: number;
+  masterVolume: number;
+}
 export interface DSPProfile {
   id: string;
   name: string;

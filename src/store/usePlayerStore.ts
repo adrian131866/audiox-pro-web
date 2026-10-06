@@ -12,16 +12,16 @@ interface PlayerState {
   isVideoMode: boolean;
   eqBands: number[];
 
-  setCurrentTrack: (track: Track | null) => void;
+  setCurrentTrack: (track: Track) => void;
   togglePlay: () => void;
   setVolume: (vol: number) => void;
   addToQueue: (track: Track) => void;
+  removeFromQueue: (index: number) => void;
   clearQueue: () => void;
   setCurrentTime: (time: number) => void;
   setDuration: (duration: number) => void;
   setIsVideoMode: (isVideo: boolean) => void;
   setEqBands: (bands: number[]) => void;
-
   nextTrack: () => void;
   previousTrack: () => void;
 }
@@ -40,12 +40,41 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   setCurrentTrack: (track) => set({
     currentTrack: track,
     isPlaying: true,
-    isVideoMode: track?.type === 'video' || false
+    isVideoMode: track.type === 'video',
+    duration: track.duration
   }),
+
   togglePlay: () => set((state) => ({ isPlaying: !state.isPlaying })),
   setVolume: (vol) => set({ volume: vol }),
-  addToQueue: (track) => set((state) => ({ queue: [...state.queue, track] })),
-  clearQueue: () => set({ queue: [], currentIndex: 0 }),
+
+  addToQueue: (track) => set((state) => {
+    const newQueue = [...state.queue, track];
+    return {
+      queue: newQueue,
+      currentTrack: state.queue.length === 0 ? track : state.currentTrack,
+      currentIndex: state.queue.length === 0 ? 0 : state.currentIndex,
+      duration: state.queue.length === 0 ? track.duration : state.duration
+    };
+  }),
+
+  removeFromQueue: (index) => set((state) => {
+    const newQueue = state.queue.filter((_, i) => i !== index);
+    let newIndex = state.currentIndex;
+
+    if (index < state.currentIndex) {
+      newIndex = state.currentIndex - 1;
+    } else if (index === state.currentIndex) {
+      newIndex = Math.min(state.currentIndex, newQueue.length - 1);
+    }
+
+    return {
+      queue: newQueue,
+      currentIndex: newIndex,
+      currentTrack: newQueue[newIndex] || null
+    };
+  }),
+
+  clearQueue: () => set({ queue: [], currentIndex: 0, currentTrack: null, isPlaying: false }),
   setCurrentTime: (time) => set({ currentTime: time }),
   setDuration: (duration) => set({ duration }),
   setIsVideoMode: (isVideo) => set({ isVideoMode: isVideo }),
@@ -62,8 +91,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       currentTrack: next,
       currentIndex: nextIndex,
       isPlaying: true,
-      isVideoMode: next?.type === 'video' || false,
-      currentTime: 0
+      isVideoMode: next.type === 'video',
+      currentTime: 0,
+      duration: next.duration
     });
   },
 
@@ -78,8 +108,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       currentTrack: prev,
       currentIndex: prevIndex,
       isPlaying: true,
-      isVideoMode: prev?.type === 'video' || false,
-      currentTime: 0
+      isVideoMode: prev.type === 'video',
+      currentTime: 0,
+      duration: prev.duration
     });
   },
 }));
