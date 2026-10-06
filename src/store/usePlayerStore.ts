@@ -12,7 +12,7 @@ interface PlayerState {
   isVideoMode: boolean;
   eqBands: number[];
 
-  setCurrentTrack: (track: Track) => void;
+ setCurrentTrack: (track: Track | null) => void;
   togglePlay: () => void;
   setVolume: (vol: number) => void;
   addToQueue: (track: Track) => void;
@@ -37,12 +37,26 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   isVideoMode: false,
   eqBands: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
 
-  setCurrentTrack: (track) => set({
-    currentTrack: track,
-    isPlaying: true,
-    isVideoMode: track.type === 'video',
-    duration: track.duration
-  }),
+  setCurrentTrack: (track) => {
+    if (!track) {
+      set({
+        currentTrack: null,
+        isPlaying: false,
+        isVideoMode: false,
+        duration: 0,
+        currentTime: 0
+      });
+      return;
+    }
+
+    set({
+      currentTrack: track,
+      isPlaying: true,
+      isVideoMode: track.type === 'video',
+      duration: track.duration,
+      currentTime: 0
+    });
+  },
 
   togglePlay: () => set((state) => ({ isPlaying: !state.isPlaying })),
   setVolume: (vol) => set({ volume: vol }),

@@ -11,21 +11,19 @@ export const FileUploader = () => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
-    const newTracks: Track[] = Array.from(files).map((file) => ({
-      id: crypto.randomUUID(), 
-      file: file,
-      name: file.name,
-      url: URL.createObjectURL(file), 
-      type: file.type.startsWith('video') ? 'video' : 'audio',
+    const tracks: Track[] = Array.from(files).map((file) => ({
+      id: `${file.name}-${Date.now()}-${Math.random()}`,
+      file,
+      name: file.name.replace(/\.[^/.]+$/, ''),
+      url: URL.createObjectURL(file),
+      type: file.type.startsWith('video/') ? 'video' : 'audio',
     }));
 
-    
-    newTracks.forEach((track) => addToQueue(track));
-    if (newTracks.length > 0) {
-      setCurrentTrack(newTracks[0]);
+    tracks.forEach((track) => addToQueue(track));
+    if (tracks.length > 0) {
+      setCurrentTrack(tracks[0]);
     }
 
-    
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }

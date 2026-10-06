@@ -84,10 +84,10 @@ function App() {
 
         return {
           id: crypto.randomUUID(),
-          file: file,
-          name: file.name,
+          file,
+          name: file.name.replace(/\.[^/.]+$/, ''),
           url: URL.createObjectURL(file),
-          type: isVideo ? 'video' : 'audio',
+          type: isVideo || file.type.startsWith('video/') ? 'video' : 'audio',
         };
       });
 
@@ -201,7 +201,8 @@ function App() {
           onExpand={() => setIsVideoMinimized(false)}
           onClose={() => {
             setIsVideoMinimized(false);
-            usePlayerStore.getState().setCurrentTrack(null);
+            const { setCurrentTrack } = usePlayerStore.getState();
+            (setCurrentTrack as (track: Track | null) => void)(null);
           }}
         />
       )}
